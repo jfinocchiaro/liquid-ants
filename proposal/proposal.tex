@@ -1,0 +1,137 @@
+\documentclass[12pt]{article}
+
+\usepackage{fancyhdr}
+
+
+\usepackage{amsfonts, amsmath, amsthm, amssymb, graphicx, verbatim}
+\usepackage[margin=1.0in]{geometry}
+\usepackage{booktabs} % Top and bottom rules for table
+\usepackage[font=small,labelfont=bf]{caption} % Required for specifying captions to tables and figures
+\usepackage{amsfonts, amsmath, amsthm, amssymb, graphicx, verbatim} % For math fonts, symbols and environments
+\usepackage{wrapfig} % Allows wrapping text around tables and figures
+\usepackage[colorinlistoftodos,textsize=tiny]{todonotes} % need xargs for below
+%\usepackage{accents}
+\usepackage{bbm}
+\usepackage{thm-restate}
+%\usepackage[backend=bibtex]{biblatex}
+
+
+\usepackage[colorlinks=true,breaklinks=true,bookmarks=true,urlcolor=blue,
+citecolor=blue,linkcolor=blue,bookmarksopen=false,draft=false]{hyperref}
+\usepackage{url}
+\usepackage{float}
+\usepackage{enumitem}
+
+\newcommand{\Comments}{1}
+\newcommand{\mynote}[2]{\ifnum\Comments=1\textcolor{#1}{#2}\fi}
+\newcommand{\mytodo}[2]{\ifnum\Comments=1%
+	\todo[linecolor=#1!80!black,backgroundcolor=#1,bordercolor=#1!80!black]{#2}\fi}
+\newcommand{\jessie}[1]{\mynote{green}{[JF: #1]}}
+\newcommand{\jessiet}[1]{\mytodo{green!20!white}{JF: #1}}
+\newcommand{\btw}[1]{\mytodo{gray!20!white}{\textcolor{gray}{#1}}}
+\newcommand{\future}[1]{}%\mytodo{blue!20!white}{\textcolor{gray!50!black}{FUTURE: #1}}}
+\ifnum\Comments=1               % fix margins for todonotes
+\setlength{\marginparwidth}{1in}
+\fi
+
+\pagestyle{fancy}
+\lhead{Jessica Finocchiaro}
+\rhead{CSCI 5423- Self-assembly: Thermoregulation}
+
+
+\newcommand{\reals}{\mathbb{R}}
+\newcommand{\posreals}{\reals_{>0}}%{\reals_{++}}
+\newcommand{\myderiv}[1]{\tfrac{d}{d#1}} % \partial_{#1}
+\newcommand{\myrderiv}[1]{\tfrac{\,d^+\!\!}{d#1}} % \partial_{#1}
+\newcommand{\dz}{\myderiv{z}}
+\newcommand{\dx}{\myderiv{x}}
+\newcommand{\dr}{\myderiv{r}}
+\newcommand{\du}{\myderiv{u}}
+\newcommand{\rdx}{\myrderiv{x}}
+
+%m upper and lower bounds
+\newcommand{\mup}{\overline{m}}
+\newcommand{\mlow}{\underline{m}}
+
+
+% alphabetical order, by convention
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\I}{\mathcal{I}}
+\renewcommand{\P}{\mathcal{P}}
+\newcommand{\R}{\mathcal{R}}
+\newcommand{\Y}{\mathcal{Y}}
+\renewcommand{\P}{\mathcal{P}}
+
+\newcommand{\inter}[1]{\mathring{#1}}%\mathrm{int}(#1)}
+%\newcommand{\expectedv}[3]{\overline{#1}(#2,#3)}
+\newcommand{\expectedv}[3]{\E_{Y\sim{#3}} {#1}(#2,Y)}
+
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\arginf}{arg\,inf}
+\DeclareMathOperator*{\sgn}{sgn}
+
+
+\newtheorem{definition}{Definition}	 
+\newtheorem{proposition}{Proposition}	 
+\newtheorem{condition}{Condition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+
+
+
+\begin{document}
+%\emph{Paragraph or two on any/some of the following points:}\\
+%What do you feel the main contribution of this paper is? What's the essential principle that the paper exploits? What did you find most interesting about this work? 
+%\\
+%\emph{Short answers to the questions below}\\ 
+%One major strength of the paper
+%One weakness of this paper
+%\\
+%\emph{Short discussion of: }\\ 
+%One question or future work direction you think should be followed. Or some insight/connection you think is interesting to pursue.
+
+\section*{Coordinated Movements Prevent Jamming in an Emperor Penguin Huddle}
+In this paper, the authors discuss the dynamics of penguin huddles.
+Namely, penguins take small steps inside the huddle, and the authors provide three reasons for which they might do this.
+They track and analyze the speed of different penguins in the huddle and track their relative location over time.
+
+The primary strength of the paper, to me, was their proposed explanation as to why penguins take small steps.
+It takes their data and provides some intuition for it without taking too many creative liberties in the analysis.
+The main thing that I disliked about the paper was its brevity; in the discussion, the authors suggest a really cool comparison to humans in large group as well as schools of fish, pigeon flocks, and marching locusts.
+However, they don't discuss why a model of penguin huddles might be different, and I don't think this answer is obvious enough to completely dismiss.
+With that, I think the follow-up that I would like to see most is a comparison to human behavior in panic situations, as well as a comparison of models between emperor penguins and other animals that aim to thermoregulate, like the bees in the next paper.
+
+\section*{Collective theormregulation in bee clusters}
+%\emph{Paragraph or two on any/some of the following points:}\\
+%What do you feel the main contribution of this paper is? What's the essential principle that the paper exploits? What did you find most interesting about this work? 
+%\\
+%\emph{Short answers to the questions below}\\ 
+%One major strength of the paper
+%One weakness of this paper
+%\\
+%\emph{Short discussion of: }\\ 
+%One question or future work direction you think should be followed. Or some insight/connection you think is interesting to pursue.
+This paper studies the contraction and expansion of bee swarms in an attempt to regulate and respond to non-ideal temperature conditions.
+Unlike some previous papers, the authors do not assume a bee knows the global shape or location of the swarm.
+Instead, bees act on local rules based on behavioral pressure from neighbors.
+In this new model, the only two independent variables are the bee packing density and temperature, and everything else about the swarm is measured as a function of these two variables.
+
+
+The major strength of this work is the construction of a new mathematical model that seems to be closer to how bees reason about their movement from empirical evidence.
+The figures presented are also pretty intuitive to understand, once the notation is parsed.
+However, I was a little irked about how they state their assumptions, but don't take any time to discuss if they think these assumptions are strong, and if they are not, convince me why that is the case.
+One question I had in trying to understand the paper was in the dimension-reduction section.
+I can't tell if this is just something I don't know, but is there a difference between a dimensionless equation and a parameter?
+
+One follow-up project (that hasn't already been done to my knowledge) would be testing the emergence and practical use of non-spherical swarms, if any.
+I suggest this since it is one assumption this model makes and does not discuss, but I imagine that an optimization of surface area or volume, possibly with weak convexity restrictions would be correlated with the ambient temperature change of the swarm.
+
+\bibliographystyle{ieeetr}
+\bibliography{papers}
+
+
+\end{document}
