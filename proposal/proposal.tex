@@ -36,7 +36,7 @@ citecolor=blue,linkcolor=blue,bookmarksopen=false,draft=false]{hyperref}
 
 \pagestyle{fancy}
 \lhead{Jessica Finocchiaro and Gabriel P. Andrade}
-\rhead{CSCI 5423- Self-assembly: Thermoregulation}
+\rhead{CSCI 5423- Project proposal}
 
 
 \newcommand{\reals}{\mathbb{R}}
@@ -85,6 +85,7 @@ citecolor=blue,linkcolor=blue,bookmarksopen=false,draft=false]{hyperref}
 
 \begin{document}
 
+%1-2 page proposal
 Liquid democracy is a system of decision making that lies as a happy compromise between true and representative democracy.
 True democracy, in which everyone votes on every decision to be made, is often difficult to implement in practice, and agents are often uninformed on the vote.
 However, in representative democracy, agents do not have the ability to voice their own opinion on topics they really care about.
@@ -97,8 +98,30 @@ However, in political systems, the mechanism to delegate votes must be chosen ca
 However, as Gelblum et al.~\cite{gelblum2015ant} points out, the \jessie{species} ants are able to collectively transport food items in a decision making process that is intermediate between the sole decisions of a few ants and every ant making their own decision.
 In collective transport, contradicting forces on the transported object can lead to stagnation, so the ability to reach a consensus is crucial for ants.
 
+In our project, we plan to simulate a population of ants that are placed on a lattice in $\mathbb{Z}^2$ and simulate their efficiency in transporting an object toward their goal.
+Ants should have varying amounts of knowledge about the location of their destination, as is modeled by \jessie{refs who assume this}.
+We plan to use three ``types'' of ant: Scouts who are searching for the destination, leaders who have an idea where the destination is but are helping carry the object, and followers, who are less educated.
+At each time step $t$, each ant that is carrying the object (i.e. leaders and followers, but not scouts) will cast a vote on which one of 8 directions to move.
+As standing still is undesirable, we assume that ants would rather move in an undesired direction than stand still.
+
+As ants are carrying the object, they become less informed about their location relative to the goal over time.
+We plan to incorporate some diminishing knowledge decay, so that, as leaders continue to carry the object, they may turn into followers if they don't leave soon enough to scout.
+In our model, we assume that ants can be ``tagged out'' by a scout, who then takes their place carrying the object, but as a leader- regardless of who they tagged out.
+
+When the group is deciding the direction to move in, leaders and followers are the only ants voting, as scouts are not currently attached to the object being transported, nor the ants transporting it, so there is no way for scouts to communicate to leaders and followers until the scout returns.
+Leaders and followers both delegate their vote to a neighbor with probability $p$, and make their own vote with probability $(1-p)$.
+Since leaders are more informed than followers, the probability of delegation $P(delegate|leader) < P(delegate|follower)$.
+Any scout that returns to the object should return as a leader since they are more knowledgable about the location of the goal.
+
+Another consideration we have to make is the line of vision for an ant- particularly the scouts.
+Supposing our $n$ ants are on an $m \times m$ grid, if the ants have a \jessie{conic? then we have to worry about orientation} line of sight of ``length'' $m$, then every ant should be able to see the target and vote to move in the most direct direction toward the goal.
+However, if ants can only see the $1$ square around them, then almost no ant would have any information about the location of the target, and we conjecture the path would look like a random walk.
 
 
+Notes:
+In general, these algorithms struggle between a global mechanism (no robustness) and being completely decentralized (no algorithm or lots of wasted efficiency) so this lets us live somewhere on the middle.
+
+This offers a new paradigm for a lot of interesting local problems. 
 \bibliographystyle{ieeetr}
 \bibliography{refs}
 
