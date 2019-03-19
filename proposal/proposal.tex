@@ -112,29 +112,49 @@ In collective transport, contradicting forces on the transported object can lead
 Test
 
 \section{Implementation ideas}
-In our project, we plan to simulate a population of ants that are placed on a lattice in $\mathbb{Z}^2$ and simulate their efficiency in transporting an object toward their goal.
-Ants should have varying amounts of knowledge about the location of their destination, as is modeled by \jessie{refs who assume this}.
-We plan to use three ``types'' of ant: Scouts who are searching for the destination, leaders who have an idea where the destination is but are helping carry the object, and followers, who are less educated.
-At each time step $t$, each ant that is carrying the object (i.e. leaders and followers, but not scouts) will cast a vote on which one of 8 directions to move.
-As standing still is undesirable, we assume that ants would rather move in an undesired direction than stand still.
+In our project, we plan to simulate a population of agents that are placed on a $m \times m$ triangular lattice and simulate their efficiency in transporting a $k_o \times k_o$ object towards a given goal.
+Agents should have varying amounts of knowledge about the location of their destination, like the models of \jessie{refs who assume this}.
+In an environment with discretized time, at each time step $t$, each agent chooses an action $A_i \in A := \{$Up, Down, Left, Right, $a_1, \ldots, a_{i-1}, a_{i+1}, \ldots, a_n \}$.
+The vote $a_j$ is the delegation of one's vote to neighbor $j$, and a directional action is the agent casting a vote in that direction on behalf of every agent who delegated to them, including them.
 
-As ants are carrying the object, they become less informed about their location relative to the goal over time.
-We plan to incorporate some diminishing knowledge decay, so that, as leaders continue to carry the object, they may turn into followers if they don't leave soon enough to scout.
-In our model, we assume that ants can be ``tagged out'' by a scout, who then takes their place carrying the object, but as a leader- regardless of who they tagged out.
+We also equip each agent with a confidence set $C$ that has to distinguish agents from one another.
+For example, this set could be $\{$Carrier, Clueless, Volunteer, Informed $\}$, where we assume agents carrying the object aren't able to search for the goal, hence carrier being its own category.
 
-When the group is deciding the direction to move in, leaders and followers are the only ants voting, as scouts are not currently attached to the object being transported, nor the ants transporting it, so there is no way for scouts to communicate to leaders and followers until the scout returns.
-Leaders and followers both delegate their vote to a neighbor with probability $p$, and make their own vote with probability $(1-p)$.
-Since leaders are more informed than followers, the probability of delegation $P(delegate|leader) < P(delegate|follower)$.
-Any scout that returns to the object should return as a leader since they are more knowledgable about the location of the goal.
+Our potential voting mechanism is to delegate our vote to our neighbor with the ``highest'' confidence.
+If agents are informed (i.e. they can see the goal or can see an informed agent), they vote on their own behalf in the direction of the goal.
+If the agent is a volunteer and cannot see an informed agent, they will vote in a direction chosen from a (possibly  fixed) probability distribution.
+A clueless agent will delegate their vote to their neighbor who broadcasts the highest confidence, and carriers delegate their vote to anyone in front of them.
 
-Another consideration we have to make is the line of vision for an ant- particularly the scouts.
-Supposing our $n$ ants are on an $m \times m$ grid, if the ants have a \jessie{conic? then we have to worry about orientation} line of sight of ``length'' $m$, then every ant should be able to see the target and vote to move in the most direct direction toward the goal.
-However, if ants can only see the $1$ square around them, then almost no ant would have any information about the location of the target, and we conjecture the path would look like a random walk.
+At each time step $t$, consider the following sequence of subroutines:
+\begin{enumerate}
+	\item Broadcast your confidence to the world.
+	\item Choose an action $A_i \in A$
+	\item ``Communicate'' your vote to neighbors if necessary
+	\item Move in the direction your vote went
+	\item Update your confidence
+\end{enumerate}
+
+%We plan to use three ``types'' of ant: Scouts who are searching for the destination, leaders who have an idea where the destination is but are helping carry the object, and followers, who are less educated.
+%At each time step $t$, each ant that is carrying the object (i.e. leaders and followers, but not scouts) will cast a vote on which one of 8 directions to move.
+%As standing still is undesirable, we assume that ants would rather move in an undesired direction than stand still.
+%
+%As ants are carrying the object, they become less informed about their location relative to the goal over time.
+%We plan to incorporate some diminishing knowledge decay, so that, as leaders continue to carry the object, they may turn into followers if they don't leave soon enough to scout.
+%In our model, we assume that ants can be ``tagged out'' by a scout, who then takes their place carrying the object, but as a leader- regardless of who they tagged out.
+%
+%When the group is deciding the direction to move in, leaders and followers are the only ants voting, as scouts are not currently attached to the object being transported, nor the ants transporting it, so there is no way for scouts to communicate to leaders and followers until the scout returns.
+%Leaders and followers both delegate their vote to a neighbor with probability $p$, and make their own vote with probability $(1-p)$.
+%Since leaders are more informed than followers, the probability of delegation $P(delegate|leader) < P(delegate|follower)$.
+%Any scout that returns to the object should return as a leader since they are more knowledgable about the location of the goal.
+%
+%Another consideration we have to make is the line of vision for an ant- particularly the scouts.
+%Supposing our $n$ ants are on an $m \times m$ grid, if the ants have a \jessie{conic? then we have to worry about orientation} line of sight of ``length'' $m$, then every ant should be able to see the target and vote to move in the most direct direction toward the goal.
+%However, if ants can only see the $1$ square around them, then almost no ant would have any information about the location of the target, and we conjecture the path would look like a random walk.
 
 
 \section{Weekly Milestones}
 \begin{itemize}
-\item By Sunday, March 17-- Write the project proposal
+\item By Wednesday, March 20-- Write the project proposal
 \item By Sunday, March 24-- Design the algorithm
 \item By Sunday, March 31-- Implement algorithm for each ant
 \item By Sunday, April 7-- Get simulations running
@@ -153,8 +173,9 @@ However, if ants can only see the $1$ square around them, then almost no ant wou
 
 Notes:
 In general, these algorithms struggle between a global mechanism (no robustness) and being completely decentralized (no algorithm or lots of wasted efficiency) so this lets us live somewhere on the middle.
+One struggle of liquid democracy in social practices is avoiding the emergence of a dictatorship.
+However, this is a virtue for us, as informed agents will become the dictator in our setting.
 
-This offers a new paradigm for a lot of interesting local problems. 
 \bibliographystyle{ieeetr}
 \bibliography{refs}
 
