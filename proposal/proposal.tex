@@ -93,7 +93,7 @@ citecolor=blue,linkcolor=blue,bookmarksopen=false,draft=false]{hyperref}
 %plan of execution along with list of weekly milestones
 %short bibliography
 
-\section{The problem and motivation}
+\section{Problem and motivation}
 Liquid democracy is a system of decision making that lies as a happy compromise between true and representative democracy.
 True democracy, in which everyone votes on every decision to be made, is often difficult to implement in practice, and agents are often uninformed on the vote.
 However, in representative democracy, agents do not have the ability to voice their own opinion on topics they really care about.
@@ -103,13 +103,21 @@ Instead, in a liquid democracy, agents are given the choice to delegate their vo
 Liquid democracy has been implemented in a handful of political parties globally, with the most notable of these being the German Pirate Party\footnote{\url{http://techpresident.com/news/wegov/22154/how-german-pirate-partys-liquid-democracy-works}}.
 However, in political systems, the mechanism to delegate votes must be chosen carefully, otherwise the emergence of a dictatorship could easily arise- as happened in the GPP.
 
-However, as Gelblum et al.~\cite{gelblum2015ant} points out, the \jessie{species} ants are able to collectively transport food items in a decision making process that is intermediate between the sole decisions of a few ants and every ant making their own decision.
+However, as Gelblum et al.~\cite{gelblum2015ant} points out, the \emph{Paratrechina longicornis} ants are able to collectively transport food items in a decision making process that is intermediate between the sole decisions of a few ants and every ant making their own decision.
 In collective transport, contradicting forces on the transported object can lead to stagnation, so the ability to reach a consensus is crucial.
 
 \section{Background and related work}
-\jessiet{Add in lit review}
-\gabet{Add in lit review}
-Test
+
+\begin{itemize}
+	\item Gelblum et al.~\cite{gelblum2015ant} studies the ability of ants to work as a team to transport a cheerio.
+	In their paper, they track each ant's movement in a video to distinguish the path of informed ants that don't carry the burden of the cheerio, and carrier ants that tend to follow the informed ants.
+	They also develop a theoretical model to accompany their data that models pulling and pushing ants.
+	\item Peters and Adamou~\cite{peters2015evolutionary} discusses the apparently contradictory presence of cooperation in evolution.
+	While the world is competitive (after all, ``survival of the fittest'' is a term we all know for a reason), this paper emphasizes the cooperation required and found in evolution.
+	They point out that cooperation is observed in nature because those who do outgrow those who don't cooperate.
+	(Sidebar from Jessie: I just had a paper published that supports this sentiment in~\cite{finocchiaro2019evolving}.)
+	
+\end{itemize}
 
 \section{Implementation ideas}
 In our project, we plan to simulate a population of agents that are placed on a $m \times m$ triangular lattice and simulate their efficiency in transporting a $k_o \times k_o$ object towards a given goal.
