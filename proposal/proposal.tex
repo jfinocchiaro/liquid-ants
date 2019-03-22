@@ -93,7 +93,16 @@ citecolor=blue,linkcolor=blue,bookmarksopen=false,draft=false]{hyperref}
 %plan of execution along with list of weekly milestones
 %short bibliography
 
-\section{Problem and motivation}
+\section{Problem and motivation} 
+Collective transport of objects by multi-agent systems is a difficult problem that often requires we choose between centralized and decentralized solution; accepting both the pros and cons of the chosen approach \cite{rubenstein2013collective, chen2015occlusion, mccreery2016collective}. 
+This unfortunate compromise is only made more difficult by factors often present in scenarios where collective transport is required such as the goal being visually occluded, agents being restricted by hardware constraints, communication is limited, etc.
+
+
+As Gelblum et al.~\cite{gelblum2015ant} points out, the \emph{Paratrechina longicornis} ants are able to collectively transport food items in a decision making process that is intermediate between the sole decisions of a few ants and every ant making their own decision.
+In collective transport, contradicting forces on the transported object can lead to stagnation, so the ability to reach a consensus is crucial.
+
+
+
 Liquid democracy is a system of decision making that lies as a happy compromise between true and representative democracy.
 True democracy, in which everyone votes on every decision to be made, is often difficult to implement in practice, and agents are often uninformed on the vote.
 However, in representative democracy, agents do not have the ability to voice their own opinion on topics they really care about.
@@ -102,11 +111,15 @@ Instead, in a liquid democracy, agents are given the choice to delegate their vo
 
 Liquid democracy has been implemented in a handful of political parties globally, with the most notable of these being the German Pirate Party\footnote{\url{http://techpresident.com/news/wegov/22154/how-german-pirate-partys-liquid-democracy-works}}.
 However, in political systems, the mechanism to delegate votes must be chosen carefully, otherwise the emergence of a dictatorship could easily arise- as happened in the GPP.
+We hope to combine centralized and decentralized decision making processes in our model by using mechanisms inspired by liquid democracy for the goal of collective transport.
+One struggle of liquid democracy in social practices is avoiding the emergence of a dictatorship.
+However, this is a virtue for us, as informed agents will become the dictator in our setting.
 
-However, as Gelblum et al.~\cite{gelblum2015ant} points out, the \emph{Paratrechina longicornis} ants are able to collectively transport food items in a decision making process that is intermediate between the sole decisions of a few ants and every ant making their own decision.
-In collective transport, contradicting forces on the transported object can lead to stagnation, so the ability to reach a consensus is crucial.
 
 \section{Background and related work}
+
+A variety of papers~\cite{leonard2012decision, berdahl2013emergent, couzin2011uninformed} study consensus in path planning by animal groups.
+In particular, we base our work more heavily on the following papers:
 
 \begin{itemize}
 	\item Gelblum et al.~\cite{gelblum2015ant} studies the ability of ants to work as a team to transport a cheerio.
@@ -117,13 +130,18 @@ In collective transport, contradicting forces on the transported object can lead
 	They point out that cooperation is observed in nature because those who do outgrow those who don't cooperate.
 	(Sidebar from Jessie: I just had a paper published that supports this sentiment in~\cite{finocchiaro2019evolving}.)
 	
+	\item Kirman~\cite{kirman2016ants} proposes replacing standard utility-based macroconomic models with agent-based models in which agents behave by a set of local rules.
+	He cites economists who compare the economy to the flight of a bumblebee; by most models, it does not make sense.
+	He argues that we should adjust our models to accommodate the actual, observed behavior in the actual economy.
+	This paper, like many studied in class, draws conclusions about human systems based on observations of animal behavior.
+	In our paper, we take the opposite approach, where we look at an economic model and evaluate possible similarities to ant colonies.
 \end{itemize}
 
 \section{Implementation ideas}
 In our project, we plan to simulate a population of agents that are placed on a $m \times m$ triangular lattice and simulate their efficiency in transporting a $k_o \times k_o$ object towards a given goal.
-Agents should have varying amounts of knowledge about the location of their destination, like the models of \jessie{refs who assume this}.
-In an environment with discretized time, at each time step $t$, each agent chooses an action $A_i \in A := \{$Up, Down, Left, Right, $a_1, \ldots, a_{i-1}, a_{i+1}, \ldots, a_n \}$.
-The vote $a_j$ is the delegation of one's vote to neighbor $j$, and a directional action is the agent casting a vote in that direction on behalf of every agent who delegated to them, including them.
+Agents should have varying amounts of knowledge about the location of their destination, like the model of Couzin et al.~\cite{couzin2005effective}.
+In an environment with discretized time, at each time step $t$, each agent chooses an action from the set $A_i \subseteq A := \{$Up, Down, Left, Right, $a_1, \ldots, a_{i-1}, a_{i+1}, \ldots, a_n \}$.
+The vote $a_j$ is the delegation of one's vote to neighbor $j$, and a directional action is the agent casting a vote in that direction on behalf of every agent who delegated to them, including themself.
 
 We also equip each agent with a confidence set $C$ that has to distinguish agents from one another.
 For example, this set could be $\{$Carrier, Clueless, Volunteer, Informed $\}$, where we assume agents carrying the object aren't able to search for the goal, hence carrier being its own category.
@@ -136,7 +154,7 @@ A clueless agent will delegate their vote to their neighbor who broadcasts the h
 At each time step $t$, consider the following sequence of subroutines:
 \begin{enumerate}
 	\item Broadcast your confidence to the world.
-	\item Choose an action $A_i \in A$
+	\item Choose an action from $A_i$
 	\item ``Communicate'' your vote to neighbors if necessary
 	\item Move in the direction your vote went
 	\item Update your confidence
@@ -173,16 +191,13 @@ At each time step $t$, consider the following sequence of subroutines:
 
 \section{Future Work}
 \begin{itemize}
+\item Move to a continuous setting
 \item Finding object then transporting it
 \item Multiple objects to transport
 \item Handling Byzentine agents
 \item Make the line of sight conic
 \end{itemize}
 
-Notes:
-In general, these algorithms struggle between a global mechanism (no robustness) and being completely decentralized (no algorithm or lots of wasted efficiency) so this lets us live somewhere on the middle.
-One struggle of liquid democracy in social practices is avoiding the emergence of a dictatorship.
-However, this is a virtue for us, as informed agents will become the dictator in our setting.
 
 \bibliographystyle{ieeetr}
 \bibliography{refs}
