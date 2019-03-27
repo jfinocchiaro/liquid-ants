@@ -1,0 +1,81 @@
+import numpy as np
+from random import *
+
+LEFT_DIST = 10 #10 seconds
+length_multiplier = 2 #ratio of the length of the paths
+RIGHT_DIST = length_multiplier * LEFT_DIST
+
+#declare global left and right paths
+class Path():
+    def __init__(self, length):
+        self.length = length
+        self.num_pheromones = np.zeros(length)
+
+RIGHT_PATH = Path(RIGHT_DIST)
+LEFT_PATH = Path(LEFT_DIST)
+
+
+class Ant():
+    def __init__(self, progress,direction, marking_for, marking_back):
+        self.progress = progress
+        self.marking_for = marking_for
+        self.marking_back = marking_back
+        if direction == 0:
+            self.curr_path = LEFT_PATH
+        else:
+            self.curr_path = RIGHT_PATH
+            
+    def ventureout(self):
+        self.progress = self.progress + 1
+        if self.mark:
+            self.curr_path.add_mark()
+    def comehome(self):        
+        self.progress = self.progress + 1
+        if self.mark:
+            self.curr_path.add_mark()
+
+            
+
+
+def main():
+    NUM_ANTS = 500
+    ants = []
+    MARKING_FORWARD = 1
+    MARKING_BACKWARD = 1
+    
+
+
+    TIME_STEPS = 1#20 * 60 #20 minutes... but in seconds
+
+    prob_left = 0.5
+    prob_right = 0.5
+    directions = [0,1]
+    initial_direcs = np.zeros(2)
+
+    #initialize the ants
+    for ant in range(NUM_ANTS):
+        dir = sample(directions, 1)
+        initial_direcs[dir] = initial_direcs[dir] + 1
+        ants.append(Ant(0, dir, MARKING_FORWARD, MARKING_BACKWARD))
+
+
+    print "Initialized the ants"
+        
+    for time in range(TIME_STEPS):
+        for ant in ants:
+            if ant.progress <= ant.curr_path.length:
+                ant.ventureout()
+            else:
+                ant.comehome()
+
+        #update probabilities on each path
+        prob_left = 0.5 #TODO
+        prob_right = 0.5#TODO
+            
+
+
+    print left_path.num_pheromones
+    print right_path.num_pheromones
+
+if __name__ == "__main__":
+    main()
