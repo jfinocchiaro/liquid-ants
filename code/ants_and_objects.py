@@ -4,7 +4,7 @@ from random import *
 
 DEFAULT_RADIUS = 3
 num_ants = 100
-action_set = range(num_ants) + ['N', 'S', 'E', 'W']
+full_action_set = ['N', 'S', 'E', 'W'] + range(1,num_ants+1)
 M = 100
 
 
@@ -14,18 +14,23 @@ M = 100
 #radius is their radius of vision
 
 class Ant():
-    def __init__(self):
-        self.id_num = 0
-        self.confidence = randint(0,4)
-        self.radius = DEFAULT_RADIUS
-        self.action_set = action_set
-        self.position = (randint(0, M-1), randint(0, M-1))
+    # def __init__(self):
+    #     self.id_num = 0
+    #     self.confidence = randint(0,4)
+    #     self.radius = DEFAULT_RADIUS
+    #     self.action_set = full_action_set
+    #     self.position = (randint(0, M-1), randint(0, M-1))
+    #     self.vote = 'N'
+    #     self.carrying = False
 
-    def __init__(self, id_num, action_set, radius, confidence, position):
+    def __init__(self, id_num, action_set, radius, confidence, position, vote, carrying):
         self.id_num = id_num
-        self.radius = radius
         self.action_set = action_set
+        self.radius = radius
+        self.confidence = confidence
         self.position = position
+        self.vote = vote
+        self.carrying = carrying
 
 
 #tl_position is the location of the top-left corner of the transported object
@@ -36,9 +41,3 @@ class Transport():
         self.tl_position = tl_position
         self.br_position = br_position
         self.weight = weight
-'''
-    def __init__(self):
-        self.tl_position = (0,0)
-        self.br_position = (4,4) #come back to this?
-        self.weight = 12
-'''
