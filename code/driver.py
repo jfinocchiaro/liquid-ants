@@ -2,6 +2,7 @@ import numpy as np
 from numpy.random import *
 import ants_and_objects as a_o
 from math import *
+np.set_printoptions(suppress=True)
 
 #TODO: fix hack of marking environment with addition of number
 #TODO: make home base more than one tile
@@ -11,7 +12,7 @@ from math import *
 
 #NOTE: Added action 'G' which means reached home and so "Go into the nest"
 #NOTE: Made updating confidences second thing and merged it with broadcasting confidence
-#NOTE: It's a square lattive now for simplicity of the 'physics'
+#NOTE: It's a square lattice now for simplicity of the 'physics'
 
 def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
     env = np.zeros((m,m))
@@ -24,20 +25,20 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
     #place ants in a blob that is (sqrt n x sqrt n)
     else:
         row_length = np.ceil(sqrt(num_ants))
-        corner = (randint(0, m - row_length), randint(0, m - row_length - (num_ants%row_length)))
+        corner = [randint(0, m - row_length), randint(0, m - row_length - (num_ants%row_length))]
         for id_num in range(1, num_ants+1):
             pos = (int(corner[0] + ((id_num-1) % row_length)), corner[1] + int((id_num-1) / row_length))
-            ant_dict[id_num] = a_o.Ant(id_num, [], radius, 0, pos, False)
-            env[pos] = id_num
+            ant_dict[id_num] = a_o.Ant(id_num, [], radius, 0, list(pos), choice(['N', 'S', 'E', 'W']), False)
+            env[pos] = int(id_num)
 
         #place the object on top of the blob for now
-        trans_obj = a_o.Transport(corner, corner + (obj_size, obj_size), int(num_ants / 10)) #weight can change later
+        trans_obj = a_o.Transport(corner, [int(x + obj_size) for x in corner] , int(num_ants / 10)) #weight can change later
         for i in range(corner[0], corner[0]+ obj_size):
             for j in range(corner[1], corner[1]+ obj_size):
                 ant_dict[env[(i,j)]].carrying = True
-                env[(i,j)] += obj_mark_num
+                env[(i,j)] += int(obj_mark_num)
 
-        #initialize home base
+        #initialize home base. while loop makes sure that we don't start on home base because that's no fun
         in_obj = 1
         while (in_obj):
             hb_pos = (randint(0, m-1), randint(0, m-1))
@@ -46,7 +47,7 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
             else:
                 in_obj = 0
 
-        env[hb_pos] = -100 #marking in environment where home base is
+        env[hb_pos] = -100 #marking in environment where home base is.  by initialization, should have been 0 before.
 
     return env, ant_dict, trans_obj
 
@@ -56,6 +57,9 @@ def see_hb(environment, position, radius):
             if environment[i,j] == -100:
                 return True
 
+
+#if you see home base move towards it.
+#preference toward vertical movement, but once we're in the correct row, move horizontally toward home base
 def move_towards_hb(environment, position, radius):
     for i in range(max(position[0]-radius,0),min(position[0]+radius,m-1)):
         for j in range(max(position[1]-radius,0),min(position[1]+radius,m-1)):
@@ -68,10 +72,12 @@ def move_towards_hb(environment, position, radius):
                     return 'W'
                 elif j >  position[1]:
                     return 'E'
+                #this else is if we're on home base.
                 else:
                     return 'G'
 
 def tug_o_war(votes, obj, m):
+    #preprocessing to change the votes if the object can't move in a given direction
     obj_height = obj.br_position[0]-obj.tl_position[0]
     obj_width = obj.br_position[1]-obj.tl_position[1]
     if obj.tl_position[0] == 0:
@@ -83,12 +89,11 @@ def tug_o_war(votes, obj, m):
     if obj.tl_position[1] == m-obj_width-1:
         votes[2] = -1
 
-    max_vote = 0
-    winner = -1
-    for i in range(4):
-        if votes[i] > max_vote:
-            max_vote = votes[i]
-            winner = i
+
+
+    max_vote = max(votes)
+    winner = votes.index(max_vote)
+
     if winner == 0:
         obj.tl_position[0] = obj.tl_position[0]-1
         obj.br_position[0] = obj.br_position[0]-1
@@ -119,9 +124,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             for j in range(trans_obj.tl_position[1],trans_obj.br_position[1]+1):
                 if env[i,j] == -100:
                     found_hb = True
-                    return "Simulation Complete"
-
+                    print "Simulation Complete after " + str(time) + " time steps."
+                    return 0
         time += 1
+        print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+        #if time == 2:
+        #    quit()
 
         #Update action set by seeing who is in my radius
         for id_num in range(1, num_ants+1):
@@ -136,14 +144,16 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             elif env[i,j]-obj_mark_num > 0:
                                 ant_dict[id_num].action_set += [env[i,j]-obj_mark_num]
 
+
         #Update/broadcast confidences
         queue = []
 
         for id_num in range(1, num_ants+1):
             if see_hb(env,ant_dict[id_num].position,radius) == True:
                 ant_dict[id_num].confidence = 4
+            #why is this an if else?  so if they can't see the item, they get added to the queue, which has all of the vote delegators?
             else:
-                queue += [id_num]
+                queue.append(id_num)
 
         for id_num in queue:
             max_confidence = ant_dict[id_num].confidence
@@ -155,11 +165,13 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
             if max_confidence in [3,4]:
                 ant_dict[id_num].confidence = 3
-            elif ant_dict[id_num].carrying != True:
+            elif not ant_dict[id_num].carrying:
                 ant_dict[id_num].confidence = binomial(1, volunteer_prob) + 1
-            else: 
+            else: #ant is carrying the object
                 ant_dict[id_num].confidence = 0
 
+
+        # what's the difference between this and the loop above, other than it being run over every ant this time?
         # Choose an action and broadcast it
         for id_num in range(1, num_ants+1):
             # Look at neighbors in view to decide who to cast a vote towards
@@ -174,11 +186,15 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             max_confidence_id = act
                             ant_dict[id_num].vote = act
 
+
+                #if you're casting your own vote
+                #voting in a random direction since you ain't actually educated
                 if max_confidence_id == id_num:
                     ant_dict[id_num].vote = ant_dict[id_num].action_set[randint(0,4)]
 
+            #if you're educated, move towards home base.
             else:
-                ant_dict[act].vote = move_towards_hb(env,ant_dict[id_num].position,radius)
+                ant_dict[id_num].vote = move_towards_hb(env,ant_dict[id_num].position,radius)
 
         # Move in direction your vote went
         queue = [] #Who needs to move
@@ -206,52 +222,100 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         for id_num in obj_queue:
             ant_dict[id_num].vote = obj_dir
 
+
         #Next move if you aren't blocked or take note of who got blocked
+        #queue tracks the blocked ants?
         for id_num in range(1, num_ants+1):
+            #print 'Ant number ' + str(id_num) + ' voted to go: ' + str(ant_dict[id_num].vote)
             if ant_dict[id_num].vote == 'N':
-                if env[ant_dict[id_num].position[0]-1,ant_dict[id_num].position[1]] > 0:
-                    queue += [id_num]
-                elif ant_dict[id_num].position[0]-1 < 0:
-                    pass
-                else:
-                    if env[ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]] != -100:
-                        env[ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]] = env[ant_dict[id_num].position]
-                    env[ant_dict[id_num].position] = 0
-                    ant_dict[id_num].position[0] = ant_dict[id_num].position[0]-1
+                try:
+                    if env[ant_dict[id_num].position[0]-1,ant_dict[id_num].position[1]] > 0:
+                        queue.append(id_num)
+                        #print 'Added ant ' + str(id_num) + ' to the queue'
+                        #print env
+                    elif ant_dict[id_num].position[0]-1 < 0:
+                        pass
+                    else:
+                        if env[ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]] != -100:
+                            #print 'Ant number' + str(id_num)
+                            #print env[tuple(ant_dict[id_num].position)]
+                            env[tuple([ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]])] = env[tuple(ant_dict[id_num].position)]
+                            #print ant_dict[id_num].position
+                            env[tuple(ant_dict[id_num].position)] = 0
+                            ant_dict[id_num].position[0] = ant_dict[id_num].position[0]-1
+                except Exception as e:
+                    print 'Ant number ' + str(id_num) + ' tried moving north but hit a wall'
+                    print env
+                    print e
+                    #quit()
 
             elif ant_dict[id_num].vote == 'S':
-                if env[ant_dict[id_num].position[0]+1,ant_dict[id_num].position[1]] > 0:
-                    queue += [id_num]
-                elif ant_dict[id_num].position[0]+1 >= m:
-                    pass
-                else:
-                    if env[ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]] != -100:
-                        env[ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]] = env[ant_dict[id_num].position]
-                    env[ant_dict[id_num].position] = 0
-                    ant_dict[id_num].position[0] = ant_dict[id_num].position[0]+1
+                try:
+                    if env[ant_dict[id_num].position[0]+1,ant_dict[id_num].position[1]] > 0:
+                        queue.append(id_num)
+                        #print 'Added ant ' + str(id_num) + ' to the queue'
+                        #print env
+                    elif ant_dict[id_num].position[0]+1 >= m:
+                        pass
+                    else:
+                        if env[ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]] != -100:
+                            #print 'Ant number' + str(id_num)
+                            #print env[tuple(ant_dict[id_num].position)]
+                            env[tuple([ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]])] = env[tuple(ant_dict[id_num].position)]
+                            #print ant_dict[id_num].position
+                            env[tuple(ant_dict[id_num].position)] = 0
+                            ant_dict[id_num].position[0] = ant_dict[id_num].position[0]+1
+                except Exception as e:
+                    print 'Ant number ' + str(id_num) + ' tried moving south but hit a wall'
+                    print env
+                    print e
+                    #quit()
 
             elif ant_dict[id_num].vote == 'E':
-                if env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]+1] > 0:
-                    queue += [id_num]
-                elif ant_dict[id_num].position[1]+1 >= m:
-                    pass
-                else:
-                    if env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1] != -100:
-                        env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1] = env[ant_dict[id_num].position]
-                    env[ant_dict[id_num].position] = 0
-                    ant_dict[id_num].position[1] = ant_dict[id_num].position[1]+1
+                try:
+                    if env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]+1] > 0:
+                        queue.append(id_num)
+                        #print 'Added ant ' + str(id_num) + ' to the queue'
+                        #print env
+                    elif ant_dict[id_num].position[1]+1 >= m:
+                        pass
+                    else:
+                        if env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1] != -100:
+                            #print 'Ant number' + str(id_num)
+                            #print env[tuple(ant_dict[id_num].position)]
+                            env[tuple([ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1])] = env[tuple(ant_dict[id_num].position)]
+                            env[tuple(ant_dict[id_num].position)] = 0
+                            ant_dict[id_num].position[1] += 1
+                except Exception as e:
+                    print 'Ant number ' + str(id_num) + ' tried moving east but hit a wall'
+                    print env
+                    print e
+                    #quit()
 
             elif ant_dict[id_num].vote == 'W':
-                if env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]-1] > 0:
-                    queue += [id_num]
-                elif ant_dict[id_num].position[1]-1 < 0:
-                    pass
-                else:
-                    if env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1] != -100:
-                        env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1] = env[ant_dict[id_num].position]
-                    env[ant_dict[id_num].position] = 0
-                    ant_dict[id_num].position[1] = ant_dict[id_num].position[1]-1
+                try:
+                    if env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]-1] > 0:
+                        queue += [id_num]
+                        #print 'Added ant ' + str(id_num) + ' to the queue'
+                        #print env
+                    elif ant_dict[id_num].position[1]-1 < 0:
+                        pass
+                    else:
+                        if env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1] != -100:
+                            #print 'Ant number' + str(id_num)
+                            #print env[tuple(ant_dict[id_num].position)]
+                            env[tuple([ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1])] = env[tuple(ant_dict[id_num].position)]
+                            #print ant_dict[id_num].position
+                            env[tuple(ant_dict[id_num].position)] = 0
+                            ant_dict[id_num].position[1] = ant_dict[id_num].position[1]-1
+                except Exception as e:
+                    print 'Ant number ' + str(id_num) + ' tried moving west but hit a wall'
+                    print env
+                    print e
+                    #quit()
 
+
+        print 'Waiting to move: ' + str(queue)
         #Now blocked people move until all that are left are ants that can't move
         base_q_len = len(queue)
         update_q_len = 0
@@ -261,47 +325,47 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
             for id_num in queue:
                 if ant_dict[id_num].vote == 'N':
-                    if env[ant_dict[id_num].position[0]-1,ant_dict[id_num].position[1]] > 0:
-                        temp_queue += [id_num]
+                    if env[tuple([ant_dict[id_num].position[0]-1,ant_dict[id_num].position[1]])] > 0:
+                        temp_queue.append(id_num)
                     elif ant_dict[id_num].position[0]-1 < 0:
                         pass
                     else:
-                        if env[ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]] != -100:
-                            env[ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]] = env[ant_dict[id_num].position]
-                        env[ant_dict[id_num].position] = 0
+                        if env[tuple([ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]])] != -100:
+                            env[ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]] = env[tuple(ant_dict[id_num].position)]
+                        env[tuple(ant_dict[id_num].position)] = 0
                         ant_dict[id_num].position[0] = ant_dict[id_num].position[0]-1
 
                 elif ant_dict[id_num].vote == 'S':
-                    if env[ant_dict[id_num].position[0]+1,ant_dict[id_num].position[1]] > 0:
-                        temp_queue += [id_num]
+                    if env[tuple([ant_dict[id_num].position[0]+1,ant_dict[id_num].position[1]])] > 0:
+                        temp_queue.append(id_num)
                     elif ant_dict[id_num].position[0]+1 >= m:
                         pass
                     else:
-                        if env[ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]] != -100:
-                            env[ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]] = env[ant_dict[id_num].position]
-                        env[ant_dict[id_num].position] = 0
+                        if env[tuple([ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]])] != -100:
+                            env[tuple([ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]])] = env[tuple(ant_dict[id_num].position)]
+                        env[tuple(ant_dict[id_num].position)] = 0
                         ant_dict[id_num].position[0] = ant_dict[id_num].position[0]+1
 
                 elif ant_dict[id_num].vote == 'E':
-                    if env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]+1] > 0:
-                        temp_queue += [id_num]
+                    if env[tuple([ant_dict[id_num].position[0],ant_dict[id_num].position[1]+1])] > 0:
+                        temp_queue.append(id_num)
                     elif ant_dict[id_num].position[1]+1 >= m:
                         pass
                     else:
-                        if env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1] != -100:
-                            env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1] = env[ant_dict[id_num].position]
-                        env[ant_dict[id_num].position] = 0
+                        if env[tuple([ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1])] != -100:
+                            env[tuple([ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1])] = env[tuple(ant_dict[id_num].position)]
+                        env[tuple(ant_dict[id_num].position)] = 0
                         ant_dict[id_num].position[1] = ant_dict[id_num].position[1]+1
 
                 elif ant_dict[id_num].vote == 'W':
-                    if env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]-1] > 0:
-                        temp_queue += [id_num]
+                    if env[tuple([ant_dict[id_num].position[0],ant_dict[id_num].position[1]-1])] > 0:
+                        temp_queue.append(id_num)
                     elif ant_dict[id_num].position[1]-1 < 0:
                         pass
                     else:
-                        if env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1] != -100:
-                            env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1] = env[ant_dict[id_num].position]
-                        env[ant_dict[id_num].position] = 0
+                        if env[tuple([ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1])] != -100:
+                            env[tuple([ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1])] = env[tuple(ant_dict[id_num].position)]
+                        env[tuple(ant_dict[id_num].position)] = 0
                         ant_dict[id_num].position[1] = ant_dict[id_num].position[1]-1
 
             update_q_len = len(temp_queue)
@@ -309,13 +373,14 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             temp_queue = []
 
         #Repeat
-
+        print "Block 3"
+        print env
 
 if __name__ == "__main__":
-    m = 100
-    num_ants = 10
+    m = 10
+    num_ants = 4
     random_pos = 0
-    radius = 5
+    radius = 3
     obj_size = 1
     obj_mark_num = 5000
     volunteer_prob = .01
