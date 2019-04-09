@@ -6,8 +6,9 @@ np.set_printoptions(suppress=True)
 
 #TODO: fix hack of marking environment with addition of number
 #TODO: make home base more than one tile
-#TODO: Limit carrier ant's vision
-#TODO: Currently gives vote to first agent with highest confidence. Need to add some tie breaking scheme.
+#TODO: Limit carrier ant's vision -- SEEMS DONE (Jessie)
+#TODO: Currently gives vote to first agent with highest confidence. --SEEMS DONE (see line 179)
+#TODO: Need to add some tie breaking scheme.
 #TODO: Merge see_hb and move_towards_hb functions
 
 #NOTE: Added action 'G' which means reached home and so "Go into the nest"
@@ -36,6 +37,7 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
         for i in range(corner[0], corner[0]+ obj_size):
             for j in range(corner[1], corner[1]+ obj_size):
                 ant_dict[env[(i,j)]].carrying = True
+                ant_dict[env[(i,j)]].radius = 1 #if the ant is carrying the object, we want it to have vision radius.
                 env[(i,j)] += int(obj_mark_num)
 
         #initialize home base. while loop makes sure that we don't start on home base because that's no fun
@@ -125,6 +127,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                 if env[i,j] == -100:
                     found_hb = True
                     print "Simulation Complete after " + str(time) + " time steps."
+                    print env
                     return 0
         time += 1
         print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
@@ -135,8 +138,8 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         for id_num in range(1, num_ants+1):
             ant_dict[id_num].action_set = ['N', 'S', 'E', 'W', 'G']
 
-            for i in range(max(ant_dict[id_num].position[0]-radius,0),min(ant_dict[id_num].position[0]+radius,m-1)):
-                for j in range(max(ant_dict[id_num].position[1]-radius,0),min(ant_dict[id_num].position[1]+radius,m-1)):
+            for i in range(max(ant_dict[id_num].position[0]-ant_dict[id_num].radius,0),min(ant_dict[id_num].position[0]+ant_dict[id_num].radius,m-1)):
+                for j in range(max(ant_dict[id_num].position[1]-ant_dict[id_num].radius,0),min(ant_dict[id_num].position[1]+ant_dict[id_num].radius,m-1)):
                     if (i != ant_dict[id_num].position[0]) and (j != ant_dict[id_num].position[1]):
                         if env[i,j]>0:
                             if env[i,j]-obj_mark_num < 0:
@@ -149,7 +152,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         queue = []
 
         for id_num in range(1, num_ants+1):
-            if see_hb(env,ant_dict[id_num].position,radius) == True:
+            if see_hb(env,ant_dict[id_num].position,ant_dict[id_num].radius) == True:
                 ant_dict[id_num].confidence = 4
             #why is this an if else?  so if they can't see the item, they get added to the queue, which has all of the vote delegators?
             else:
@@ -173,7 +176,9 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
         # what's the difference between this and the loop above, other than it being run over every ant this time?
         # Choose an action and broadcast it
-        for id_num in range(1, num_ants+1):
+        #for id_num in range(1, num_ants+1):  # (old implementation. replaced by for ant in sorted(...).)
+        for ant in sorted(ant_dict.values(), key = lambda i: i.confidence, reverse = True):
+            id_num = ant.id_num
             # Look at neighbors in view to decide who to cast a vote towards
             if ant_dict[id_num].confidence <= 3:
                 max_confidence = ant_dict[id_num].confidence
@@ -378,7 +383,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
 if __name__ == "__main__":
     m = 10
-    num_ants = 4
+    num_ants = 5
     random_pos = 0
     radius = 3
     obj_size = 1
