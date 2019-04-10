@@ -7,7 +7,7 @@ np.set_printoptions(suppress=True)
 #TODO: fix hack of marking environment with addition of number
 #TODO: make home base more than one tile
 #TODO: Limit carrier ant's vision -- SEEMS DONE (Jessie)
-#TODO: Currently gives vote to first agent with highest confidence. --SEEMS DONE (see line 179)
+#TODO: Currently gives vote to first agent with highest confidence. -- DONE
 #TODO: Need to add some tie breaking scheme.
 #TODO: Merge see_hb and move_towards_hb functions
 
@@ -37,7 +37,7 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
         for i in range(corner[0], corner[0]+ obj_size):
             for j in range(corner[1], corner[1]+ obj_size):
                 ant_dict[env[(i,j)]].carrying = True
-                ant_dict[env[(i,j)]].radius = 1 #if the ant is carrying the object, we want it to have vision radius.
+                ant_dict[env[(i,j)]].radius = 1 #if the ant is carrying the object, we want it to have vision radius 1.
                 env[(i,j)] += int(obj_mark_num)
 
         #initialize home base. while loop makes sure that we don't start on home base because that's no fun
@@ -58,6 +58,23 @@ def see_hb(environment, position, radius):
         for j in range(max(position[1]-radius,0),min(position[1]+radius,m-1)):
             if environment[i,j] == -100:
                 return True
+
+#haven't tested- probably a more efficient way to do this
+def vote_toward_hb(environment, ant_dict, id_num, obj_mark_num):
+    position = ant_dict[id_num].position
+    radius = ant_dict[id_num].radius
+    for i in range(max(position[0]-radius,0),min(position[0]+radius,m-1)):
+        for j in range(max(position[1]-radius,0),min(position[1]+radius,m-1)):
+            if environment[i,j] == -100:
+                if position[0] > i:
+                    ant_dict[id_num].vote = 'N'
+                elif position[0] < i:
+                    ant_dict[id_num].vote = 'S'
+                elif position[1] > j:
+                    ant_dict[id_num].vote = 'W'
+                else:
+                    ant_dict[id_num].vote = 'E'
+    return ant_dict
 
 
 #if you see home base move towards it.
@@ -91,8 +108,7 @@ def tug_o_war(votes, obj, m):
     if obj.tl_position[1] == m-obj_width-1:
         votes[2] = -1
 
-
-
+    #note, this implicitly has tiebreaker N > S > E > W
     max_vote = max(votes)
     winner = votes.index(max_vote)
 
@@ -118,9 +134,10 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
     found_hb = False
     time = 0
+    TIME_LIMIT = 10000
 
-    # Enter action sequence until home base is found.
-    while(not found_hb):
+    # Enter action sequence until home base is found or we run out of time..
+    while(not found_hb) and time <= TIME_LIMIT:
         #Check if goal was reached
         for i in range(trans_obj.tl_position[0],trans_obj.br_position[0]+1):
             for j in range(trans_obj.tl_position[1],trans_obj.br_position[1]+1):
@@ -130,9 +147,9 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                     print env
                     return 0
         time += 1
-        print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-        #if time == 2:
-        #    quit()
+        print '~~~~~~~~~~~~~~~~~~~~~~~Time ' + str(time) + '~~~~~~~~~~~~~~~~~~~~~~~~~~'
+        if time == 1:
+            print env
 
         #Update action set by seeing who is in my radius
         for id_num in range(1, num_ants+1):
@@ -143,9 +160,9 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                     if (i != ant_dict[id_num].position[0]) and (j != ant_dict[id_num].position[1]):
                         if env[i,j]>0:
                             if env[i,j]-obj_mark_num < 0:
-                                ant_dict[id_num].action_set += [env[i,j]]
+                                ant_dict[id_num].action_set.append(env[i,j])
                             elif env[i,j]-obj_mark_num > 0:
-                                ant_dict[id_num].action_set += [env[i,j]-obj_mark_num]
+                                ant_dict[id_num].action_set.append(env[i,j]-obj_mark_num)
 
 
         #Update/broadcast confidences
@@ -179,6 +196,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         #for id_num in range(1, num_ants+1):  # (old implementation. replaced by for ant in sorted(...).)
         for ant in sorted(ant_dict.values(), key = lambda i: i.confidence, reverse = True):
             id_num = ant.id_num
+            print 'Ant number ' + str(id_num) + ' has confidence: ' + str(ant.confidence)
             # Look at neighbors in view to decide who to cast a vote towards
             if ant_dict[id_num].confidence <= 3:
                 max_confidence = ant_dict[id_num].confidence
@@ -214,7 +232,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         #Decide which way the object will move
         for id_num in range(1, num_ants+1):
             if ant_dict[id_num].carrying == True:
-                obj_queue += [id_num]
+                obj_queue.append(id_num)
                 if ant_dict[id_num].vote == 'N':
                     obj_direction_vote[0] += 1
                 elif ant_dict[id_num].vote == 'S':
@@ -378,12 +396,11 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             temp_queue = []
 
         #Repeat
-        print "Block 3"
-        print env
+        #print env
 
 if __name__ == "__main__":
     m = 10
-    num_ants = 5
+    num_ants = 4
     random_pos = 0
     radius = 3
     obj_size = 1
