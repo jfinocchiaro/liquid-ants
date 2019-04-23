@@ -3,6 +3,7 @@ from numpy.random import *
 import ants_and_objects as a_o
 from math import *
 from matplotlib import pyplot as plt
+np.set_printoptions(suppress=True)
 
 #TODO: fix hack of marking environment with addition of number
 #TODO: make home base more than one tile
@@ -178,6 +179,8 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         if time == 1:
             print env
             # print vis_env_mapping(env,obj_mark_num)
+        if time == 15:
+            quit()
 
         #Update action set by seeing who is in my radius
         for id_num in range(1, num_ants+1):
@@ -236,7 +239,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             ant_dict[id_num].vote = act
 
                 #if you're casting your own vote
-                #voting in a random direction since you ain't actually educated            
+                #voting in a random direction since you ain't actually educated
                 if max_confidence_id == id_num:
                     ant_dict[id_num].vote = ant_dict[id_num].action_set[randint(0,4)]
 
@@ -319,7 +322,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                     env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                     ant_dict[id_num].position[1] -= 1
 
-        print 'Waiting to move: ' + str(queue)
+        #print 'Waiting to move: ' + str(queue) #(Removed by Jessie)
         #Now blocked people move until all that are left are ants that can't move
         base_q_len = len(queue)
         update_q_len = 0
@@ -377,11 +380,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             temp_queue = []
 
         #Fast but shitty vis
-        ascii_vis(env,obj_mark_num)
+        #ascii_vis(env,obj_mark_num)
 
-    #     #Fancy but slow visual
-    #     plt.imshow(vis_env_mapping(env,obj_mark_num), cmap='Set1')
-    #     plt.pause(0.05)
+        #Fancy but slow visual
+        plt.imshow(vis_env_mapping(env,obj_mark_num), cmap='Set1', interpolation='nearest')
+        plt.pause(0.1)
+        plt.savefig('../simulation/simulation' + str(time) + '.png')
 
     # plt.show()
 
@@ -389,10 +393,10 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
 
 if __name__ == "__main__":
-    m = 100
-    num_ants = 100
+    m = 10
+    num_ants = 10
     random_pos = 0
-    radius = 20
+    radius = 4
     obj_size = 1
     obj_mark_num = 5000
     volunteer_prob = .01
