@@ -392,7 +392,7 @@ if __name__ == "__main__":
     m = 100
     num_ants = 100
     random_pos = 0
-    radius = 30
+    radius = 20
     obj_size = 1
     obj_mark_num = 5000
     volunteer_prob = .01
