@@ -4,7 +4,7 @@ from random import *
 
 DEFAULT_RADIUS = 3
 num_ants = 100
-full_action_set = ['N', 'S', 'E', 'W'] + range(1,num_ants+1)
+full_action_set = ['N', 'S', 'E', 'W', 'G'] + range(1,num_ants+1)
 M = 100
 
 
@@ -23,7 +23,7 @@ class Ant():
     #     self.vote = 'N'
     #     self.carrying = False
 
-    def __init__(self, id_num, action_set, radius, confidence, position, vote, carrying):
+    def __init__(self, id_num, action_set, radius, confidence, position, vote, carrying, see_object):
         self.id_num = id_num
         self.action_set = action_set
         self.radius = radius
@@ -31,6 +31,7 @@ class Ant():
         self.position = position
         self.vote = vote
         self.carrying = carrying
+        self.see_object = see_object
 
 
 #tl_position is the location of the top-left corner of the transported object
