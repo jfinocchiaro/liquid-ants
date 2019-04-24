@@ -4,6 +4,7 @@ import ants_and_objects as a_o
 from math import *
 from matplotlib import pyplot as plt
 from time import sleep
+from matplotlib.colors import LinearSegmentedColormap
 np.set_printoptions(suppress=True)
 
 #TODO: fix hack of marking environment with addition of number
@@ -70,7 +71,7 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
             env[pos[0],pos[1]] = id_num
 
         #place the object on top of the blob for now
-        if obj_size == 1: 
+        if obj_size == 1:
             trans_obj = a_o.Transport([corner[0],corner[1]], [corner[0],corner[1]], int(num_ants / 10)) #weight can change later
         else:
             trans_obj = a_o.Transport([corner[0],corner[1]], [corner[0]+obj_size-1, corner[1]+obj_size-1], int(num_ants / 10)) #weight can change later
@@ -177,8 +178,6 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         # if time == 1:
         #     print env
         #     # print vis_env_mapping(env,obj_mark_num)
-        # if time == 15:
-        #     quit()
 
         #Update action set by seeing who is in my radius
         for id_num in range(1, num_ants+1):
@@ -299,7 +298,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             trans_obj.tl_position[0] -= 1
                             trans_obj.br_position[0] -= 1
                             object_moved = True
-                    
+
 
             elif ant_dict[id_num].vote == 'S':
                 if ant_dict[id_num].position[0]+1 >= m:
@@ -316,7 +315,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             trans_obj.tl_position[0] += 1
                             trans_obj.br_position[0] += 1
                             object_moved = True
-                    
+
 
             elif ant_dict[id_num].vote == 'E':
                 if ant_dict[id_num].position[1]+1 >= m:
@@ -333,7 +332,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             trans_obj.tl_position[1] += 1
                             trans_obj.br_position[1] += 1
                             object_moved = True
-                    
+
 
             elif ant_dict[id_num].vote == 'W':
                 if ant_dict[id_num].position[1]-1 < 0:
@@ -350,7 +349,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             trans_obj.tl_position[1] -= 1
                             trans_obj.br_position[1] -= 1
                             object_moved = True
-                    
+
 
         #print 'Waiting to move: ' + str(queue) #(Removed by Jessie)
         #Now blocked people move until all that are left are ants that can't move
@@ -376,7 +375,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                                 trans_obj.tl_position[0] -= 1
                                 trans_obj.br_position[0] -= 1
                                 object_moved = True
-                        
+
 
                 elif ant_dict[id_num].vote == 'S':
                     if ant_dict[id_num].position[0]+1 >= m:
@@ -393,7 +392,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                                 trans_obj.tl_position[0] += 1
                                 trans_obj.br_position[0] += 1
                                 object_moved = True
-                        
+
 
                 elif ant_dict[id_num].vote == 'E':
                     if ant_dict[id_num].position[1]+1 >= m:
@@ -410,7 +409,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                                 trans_obj.tl_position[1] += 1
                                 trans_obj.br_position[1] += 1
                                 object_moved = True
-                        
+
 
                 elif ant_dict[id_num].vote == 'W':
                     if ant_dict[id_num].position[1]-1 < 0:
@@ -428,20 +427,27 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                                 trans_obj.br_position[1] -= 1
                                 object_moved = True
 
-                        
+
 
             update_q_len = len(temp_queue)
             queue = temp_queue
             temp_queue = []
 
         #Fast but shitty vis
-        ascii_vis(env,obj_mark_num)
-        sleep(.05)
+        #ascii_vis(env,obj_mark_num)
+        #sleep(.05)
 
         #Fancy but slow visual
-        # plt.imshow(vis_env_mapping(env,obj_mark_num), cmap='Set1', interpolation='nearest')
-        # plt.pause(0.1)
-        # plt.savefig('../simulation/simulation' + str(time) + '.png')
+        cMap = []
+        for value, colour in zip([0,1,2,3],["White", "DarkBlue", "LightBlue", "Red"]):
+            cMap.append((value/3.0, colour))
+
+        custom_cmap = LinearSegmentedColormap.from_list("custom", cMap)
+
+        plt.imshow(vis_env_mapping(env,obj_mark_num), cmap=custom_cmap, interpolation='nearest')
+        plt.title('Radius:' + str(radius) + ' Time: ' + str(time) + ' Num_ants: ' + str(num_ants) + ' Grad size: ' + str(m) + ' x ' + str(m))
+        plt.pause(0.1)
+        plt.savefig('../simulation/simulation' + str(time) + '.png')
 
     # plt.show()
 
@@ -450,8 +456,8 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
 if __name__ == "__main__":
     random_pos = 0
-    m = 20
-    num_ants = 20
+    m = 15
+    num_ants = 15
     radius = 5
     obj_size = 1
     obj_mark_num = 5000
