@@ -3,6 +3,7 @@ from numpy.random import *
 import ants_and_objects as a_o
 from math import *
 from matplotlib import pyplot as plt
+from time import sleep
 np.set_printoptions(suppress=True)
 
 #TODO: fix hack of marking environment with addition of number
@@ -69,7 +70,10 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
             env[pos[0],pos[1]] = id_num
 
         #place the object on top of the blob for now
-        trans_obj = a_o.Transport(corner, [corner[0] + obj_size, corner[1] + obj_size], int(num_ants / 10)) #weight can change later
+        if obj_size == 1: 
+            trans_obj = a_o.Transport([corner[0],corner[1]], [corner[0],corner[1]], int(num_ants / 10)) #weight can change later
+        else:
+            trans_obj = a_o.Transport([corner[0],corner[1]], [corner[0]+obj_size-1, corner[1]+obj_size-1], int(num_ants / 10)) #weight can change later
         for i in range(corner[0], corner[0]+ obj_size):
             for j in range(corner[1], corner[1]+ obj_size):
                 ant_dict[env[(i,j)]].carrying = True
@@ -120,31 +124,23 @@ def tug_o_war(votes, obj, m):
         votes[0] = -1
     if obj.tl_position[1] == 0:
         votes[3] = -1
-    if obj.tl_position[0] == m-obj_height-1:
+    if obj.br_position[0] == m-1:
         votes[1] = -1
-    if obj.tl_position[1] == m-obj_width-1:
+    if obj.br_position[1] == m-1:
         votes[2] = -1
 
     #note, this implicitly has tiebreaker N > S > E > W
-    max_vote = max(votes)
-    winner = votes.index(max_vote)
+    winner = votes.index(max(votes))
 
     if winner == 0:
-        obj.tl_position[0] = obj.tl_position[0]-1
-        obj.br_position[0] = obj.br_position[0]-1
         return 'N'
     elif winner == 1:
-        obj.tl_position[0] = obj.tl_position[0]+1
-        obj.br_position[0] = obj.br_position[0]+1
         return 'S'
     elif winner == 2:
-        obj.tl_position[1] = obj.tl_position[1]+1
-        obj.br_position[1] = obj.br_position[1]+1
         return 'E'
     else:
-        obj.tl_position[1] = obj.tl_position[1]-1
-        obj.br_position[1] = obj.br_position[1]-1
         return 'W'
+
 
 def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob):
     env, ant_dict, trans_obj = initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num)
@@ -152,6 +148,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
     found_hb = False
     time = 0
     TIME_LIMIT = 10000
+    object_moved=False
 
 
     # Enter action sequence until home base is found.
@@ -168,19 +165,20 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         #Temp completion check until object updates are set up
         for id_num in range(1, num_ants+1):
             if ant_dict[id_num].carrying:
-                if ant_dict[id_num].vote == 'G':
+                if env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] == -100:
                     found_hb = True
                     print("Simulation Complete after " + str(time) + " time steps.")
-                    print (env)
-                    return 0
+                    # print (env)
+                    quit()
 
         time += 1
+        object_moved = False
         print '~~~~~~~~~~~~~~~~~~~~~~~Time ' + str(time) + '~~~~~~~~~~~~~~~~~~~~~~~~~~'
-        if time == 1:
-            print env
-            # print vis_env_mapping(env,obj_mark_num)
-        if time == 15:
-            quit()
+        # if time == 1:
+        #     print env
+        #     # print vis_env_mapping(env,obj_mark_num)
+        # if time == 15:
+        #     quit()
 
         #Update action set by seeing who is in my radius
         for id_num in range(1, num_ants+1):
@@ -221,9 +219,9 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             else: #ant is carrying the object
                 ant_dict[id_num].confidence = 0
 
+        # Choose an action and broadcast it
         # what's the difference between this and the loop above, other than it being run over every ant this time?
         # G: Above they updated confidences. Now they can choose how to actually act/delegate votes based on confidences that are up to date (otherwise we are doing it on old info)
-        # Choose an action and broadcast it
         # G: What did sorting do for us?
         for id_num in range(1, num_ants+1):
             # Look at neighbors in view to decide who to cast a vote towards
@@ -247,6 +245,9 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             else:
                 ant_dict[id_num].vote = move_towards_hb(env,ant_dict[id_num].position,radius)
 
+            if ant_dict[id_num].carrying:
+                print('Carrier ant wants to vote: ' + str(ant_dict[id_num].vote))
+
         # Move in direction your vote went
         queue = [] #Who needs to move
         obj_queue = [] #Who is holding the object
@@ -259,7 +260,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
         #Decide which way the object will move
         for id_num in range(1, num_ants+1):
-            if ant_dict[id_num].carrying == True:
+            if ant_dict[id_num].carrying:
                 obj_queue += [id_num]
                 if ant_dict[id_num].vote == 'N':
                     obj_direction_vote[0] += 1
@@ -272,6 +273,11 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         obj_dir = tug_o_war(obj_direction_vote, trans_obj, m)
         for id_num in obj_queue:
             ant_dict[id_num].vote = obj_dir
+            if ant_dict[id_num].carrying:
+                print('Carrier ant voted: ' + str(ant_dict[id_num].vote))
+                print("Votes cast were: " + str(obj_direction_vote))
+                print('Object position: ' + str(trans_obj.tl_position) + ", " + str(trans_obj.br_position))
+                print('Carrier position: ' + str(ant_dict[id_num].position))
 
         #Next move if you aren't blocked or take note of who got blocked
         #queue tracks the blocked ants?
@@ -288,6 +294,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                         env[ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]] = env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]]
                     env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                     ant_dict[id_num].position[0] -= 1
+                    if ant_dict[id_num].carrying:
+                        if not object_moved:
+                            trans_obj.tl_position[0] -= 1
+                            trans_obj.br_position[0] -= 1
+                            object_moved = True
+                    
 
             elif ant_dict[id_num].vote == 'S':
                 if ant_dict[id_num].position[0]+1 >= m:
@@ -299,6 +311,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                         env[ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]] = env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]]
                     env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                     ant_dict[id_num].position[0] += 1
+                    if ant_dict[id_num].carrying:
+                        if not object_moved:
+                            trans_obj.tl_position[0] += 1
+                            trans_obj.br_position[0] += 1
+                            object_moved = True
+                    
 
             elif ant_dict[id_num].vote == 'E':
                 if ant_dict[id_num].position[1]+1 >= m:
@@ -310,6 +328,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                         env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1] = env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]]
                     env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                     ant_dict[id_num].position[1] += 1
+                    if ant_dict[id_num].carrying:
+                        if not object_moved:
+                            trans_obj.tl_position[1] += 1
+                            trans_obj.br_position[1] += 1
+                            object_moved = True
+                    
 
             elif ant_dict[id_num].vote == 'W':
                 if ant_dict[id_num].position[1]-1 < 0:
@@ -321,6 +345,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                         env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1] = env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]]
                     env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                     ant_dict[id_num].position[1] -= 1
+                    if ant_dict[id_num].carrying:
+                        if not object_moved:
+                            trans_obj.tl_position[1] -= 1
+                            trans_obj.br_position[1] -= 1
+                            object_moved = True
+                    
 
         #print 'Waiting to move: ' + str(queue) #(Removed by Jessie)
         #Now blocked people move until all that are left are ants that can't move
@@ -341,6 +371,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             env[ant_dict[id_num].position[0]-1, ant_dict[id_num].position[1]] = env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]]
                         env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                         ant_dict[id_num].position[0] -= 1
+                        if ant_dict[id_num].carrying:
+                            if not object_moved:
+                                trans_obj.tl_position[0] -= 1
+                                trans_obj.br_position[0] -= 1
+                                object_moved = True
+                        
 
                 elif ant_dict[id_num].vote == 'S':
                     if ant_dict[id_num].position[0]+1 >= m:
@@ -352,6 +388,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             env[ant_dict[id_num].position[0]+1, ant_dict[id_num].position[1]] = env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]]
                         env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                         ant_dict[id_num].position[0] += 1
+                        if ant_dict[id_num].carrying:
+                            if not object_moved:
+                                trans_obj.tl_position[0] += 1
+                                trans_obj.br_position[0] += 1
+                                object_moved = True
+                        
 
                 elif ant_dict[id_num].vote == 'E':
                     if ant_dict[id_num].position[1]+1 >= m:
@@ -363,6 +405,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]+1] = env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]]
                         env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                         ant_dict[id_num].position[1] += 1
+                        if ant_dict[id_num].carrying:
+                            if not object_moved:
+                                trans_obj.tl_position[1] += 1
+                                trans_obj.br_position[1] += 1
+                                object_moved = True
+                        
 
                 elif ant_dict[id_num].vote == 'W':
                     if ant_dict[id_num].position[1]-1 < 0:
@@ -374,18 +422,26 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             env[ant_dict[id_num].position[0], ant_dict[id_num].position[1]-1] = env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]]
                         env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] = 0
                         ant_dict[id_num].position[1] -= 1
+                        if ant_dict[id_num].carrying:
+                            if not object_moved:
+                                trans_obj.tl_position[1] -= 1
+                                trans_obj.br_position[1] -= 1
+                                object_moved = True
+
+                        
 
             update_q_len = len(temp_queue)
             queue = temp_queue
             temp_queue = []
 
         #Fast but shitty vis
-        #ascii_vis(env,obj_mark_num)
+        ascii_vis(env,obj_mark_num)
+        sleep(.05)
 
         #Fancy but slow visual
-        plt.imshow(vis_env_mapping(env,obj_mark_num), cmap='Set1', interpolation='nearest')
-        plt.pause(0.1)
-        plt.savefig('../simulation/simulation' + str(time) + '.png')
+        # plt.imshow(vis_env_mapping(env,obj_mark_num), cmap='Set1', interpolation='nearest')
+        # plt.pause(0.1)
+        # plt.savefig('../simulation/simulation' + str(time) + '.png')
 
     # plt.show()
 
@@ -393,12 +449,12 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
 
 if __name__ == "__main__":
-    m = 10
-    num_ants = 10
     random_pos = 0
-    radius = 4
+    m = 20
+    num_ants = 20
+    radius = 5
     obj_size = 1
     obj_mark_num = 5000
-    volunteer_prob = .01
+    volunteer_prob = .1
 
     main(m, num_ants, random_pos, radius, obj_size, obj_mark_num,volunteer_prob)
