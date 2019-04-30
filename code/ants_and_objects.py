@@ -38,7 +38,8 @@ class Ant():
 #br_position is the location of the bottom-right corner of the transported object
 #weight is the number of ants needed to actually move the object
 class Transport():
-    def __init__(self, tl_position, br_position, weight):
+    def __init__(self, tl_position, br_position, weight, carried_by):
         self.tl_position = tl_position
         self.br_position = br_position
         self.weight = weight
+        self.carried_by = carried_by
