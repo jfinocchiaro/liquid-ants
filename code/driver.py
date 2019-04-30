@@ -30,8 +30,9 @@ def vis_env_mapping(environment, mark_number):
                 mapped_env[i,j] = 3
     return mapped_env
 
-def ascii_vis(environment, mark_number):
+def ascii_vis(environment, mark_number, ant_dict):
     mapped_env = vis_env_mapping(environment, mark_number)
+    obj_count = 0
     print('_'*environment.shape[1])
     to_print = ''
     for i in range(environment.shape[0]):
@@ -39,6 +40,7 @@ def ascii_vis(environment, mark_number):
         for j in range(environment.shape[1]):
             if mapped_env[i,j] == 1:
                 to_print += 'O'
+                obj_count += 1
             elif mapped_env[i,j] == 2:
                 to_print += 'A'
             elif mapped_env[i,j] == 3:
@@ -49,6 +51,12 @@ def ascii_vis(environment, mark_number):
         print(to_print)
         to_print = ''
     print('_'*environment.shape[1])
+
+    if obj_count > 4:
+        print 'Error with object'
+        for ant in ant_dict.values():
+            print 'ID: ' + str(ant.id_num) + ' voted: ' + str(ant.vote)
+        quit()
 
 def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
     env = np.zeros((m,m))
@@ -129,13 +137,15 @@ def tug_o_war(votes, obj, m):
     if obj.br_position[1] == m-1:
         votes[2] = -1
 
+
+    print 'Votes: ' + str(votes)
     # #note, this implicitly has tiebreaker N > S > E > W
     # winner = votes.index(max(votes))
 
     potential_winners = [idx for idx in range(4) if votes[idx] == max(votes)]
     winner = choice(potential_winners)
     print potential_winners
-    
+
 
     # move in the (possibly diagonal) direction of the consensus on the object
     if potential_winners == [0]:
@@ -187,7 +197,6 @@ def move_object(environment, ant, direction):
             environment[ant.position[0],ant.position[1]] = 0
         ant.position[1] -= 1
     return environment, ant
-
 
 def actuate_movement(environment, ant, obj, queue, id_num):
     if ant.vote == 'N':
@@ -277,31 +286,59 @@ def actuate_object_movement(environment, obj, ant_dict, obj_marker):
                 if (environment[ant.position[0],ant.position[1]-1]-obj_marker) not in obj.carried_by:
                     path_clear = False
 
+        elif ant.vote == 'NE':
+            if ant.position[0]-1 < 0 or ant.position[1] + 1 >= m:
+                path_clear = False
+            elif environment[ant.position[0]-1,ant.position[1]+1] > 0:
+                if (environment[ant.position[0]-1,ant.position[1] +1]-obj_marker) not in obj.carried_by:
+                    path_clear = False
+
+        elif ant.vote == 'NW':
+            if ant.position[0]-1 < 0 or ant.position[1]-1 < 0:
+                path_clear = False
+            elif environment[ant.position[0]-1,ant.position[1]-1] > 0:
+                if (environment[ant.position[0]-1,ant.position[1]-1]-obj_marker) not in obj.carried_by:
+                    path_clear = False
+
+        elif ant.vote == 'SE':
+            if ant.position[0] + 1 >= m or ant.position[1]+1 >= m:
+                path_clear = False
+            elif environment[ant.position[0]+1,ant.position[1]+1] > 0:
+                if (environment[ant.position[0]+1,ant.position[1]+1]-obj_marker) not in obj.carried_by:
+                    path_clear = False
+
+        elif ant.vote == 'SW':
+            if ant.position[0]+1 >= m or ant.position[1]-1 < 0 :
+                path_clear = False
+            elif environment[ant.position[0]+1,ant.position[1]-1] > 0:
+                if (environment[ant.position[0],ant.position[1]-1]-obj_marker) not in obj.carried_by:
+                    path_clear = False
+
     # then move in the direction of the consensus if you can.
     # J: set up to be prepared for diagonal movement
     if path_clear:
         for id_num in obj.carried_by:
             ant = ant_dict[id_num]
             if ant.vote == 'N':
-                env, ant_dict[id_num] = move_object(environment, ant, 'N')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'N')
             elif ant.vote == 'S':
-                env, ant_dict[id_num] = move_object(environment, ant, 'S')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'S')
             elif ant.vote == 'E':
-                env, ant_dict[id_num] = move_object(environment, ant, 'E')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'E')
             elif ant.vote == 'W':
-                env, ant_dict[id_num] = move_object(environment, ant, 'W')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'W')
             elif ant.vote == 'NE':
-                env, ant_dict[id_num] = move_object(environment, ant, 'N')
-                env, ant_dict[id_num] = move_object(environment, ant, 'E')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'N')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'E')
             elif ant.vote == 'NW':
-                env, ant_dict[id_num] = move_object(environment, ant, 'N')
-                env, ant_dict[id_num] = move_object(environment, ant, 'W')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'N')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'W')
             elif ant.vote == 'SE':
-                env, ant_dict[id_num] = move_object(environment, ant, 'S')
-                env, ant_dict[id_num] = move_object(environment, ant, 'E')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'S')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'E')
             elif ant.vote == 'SW':
-                env, ant_dict[id_num] = move_object(environment, ant, 'S')
-                env, ant_dict[id_num] = move_object(environment, ant, 'W')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'S')
+                environment, ant_dict[id_num] = move_object(environment, ant, 'W')
 
         for id_num in obj.carried_by:
             ant = ant_dict[id_num]
@@ -500,7 +537,8 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         env = actuate_object_movement(env, trans_obj, ant_dict, obj_mark_num)
 
         #Fast but shitty vis
-        ascii_vis(env,obj_mark_num)
+        print env
+        ascii_vis(env,obj_mark_num, ant_dict)
         sleep(.1)
 
         #Fancy but slow visual
