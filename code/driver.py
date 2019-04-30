@@ -16,7 +16,7 @@ np.set_printoptions(suppress=True)
 
 #NOTE: Added action 'G' which means reached home and so "Go into the nest"
 #NOTE: Made updating confidences second thing and merged it with broadcasting confidence
-#NOTE: It's a square lattive now for simplicity of the 'physics'
+#NOTE: It's a square lattice now for simplicity of the 'physics'
 
 def vis_env_mapping(environment, mark_number):
     mapped_env = np.zeros((environment.shape))
@@ -68,7 +68,7 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
             env[pos[0],pos[1]] = id_num
 
         #place the object on top of the blob for now
-        if obj_size == 1: 
+        if obj_size == 1:
             trans_obj = a_o.Transport([corner[0],corner[1]], [corner[0],corner[1]], int(num_ants / 10), []) #weight can change later
         else:
             trans_obj = a_o.Transport([corner[0],corner[1]], [corner[0]+obj_size-1, corner[1]+obj_size-1], int(num_ants / 10), []) #weight can change later
@@ -77,7 +77,7 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
                 ant_dict[env[(i,j)]].carrying = True
                 ant_dict[env[(i,j)]].see_object = True
                 # ant_dict[env[(i,j)]].radius = 1 #if the ant is carrying the object, we want it to have vision radius 1.
-                trans_obj.carried_by += [env[i,j]] 
+                trans_obj.carried_by += [env[i,j]]
                 env[(i,j)] += obj_mark_num
 
         #initialize home base. while loop makes sure that we don't start on home base because that's no fun
@@ -156,7 +156,7 @@ def actuate_movement(environment, ant, obj, queue, id_num):
             if environment[ant.position[0]-1, ant.position[1]] != -100:
                 environment[ant.position[0]-1, ant.position[1]] = environment[ant.position[0],ant.position[1]]
             environment[ant.position[0],ant.position[1]] = 0
-            ant.position[0] -= 1  
+            ant.position[0] -= 1
 
     elif ant.vote == 'S':
         if ant.position[0]+1 >= m:
@@ -196,12 +196,13 @@ def actuate_movement(environment, ant, obj, queue, id_num):
                 environment[ant.position[0], ant.position[1]-1] = environment[ant.position[0],ant.position[1]]
             environment[ant.position[0],ant.position[1]] = 0
             ant.position[1] -= 1
-    
+
     return environment, queue
 
 def actuate_object_movement(environment, obj, ant_dict, obj_marker):
     path_clear = True
-    for id_num in obj.carried_by: 
+    # first, check to make sure the object can move where desired.
+    for id_num in obj.carried_by:
         ant = ant_dict[id_num]
         if ant.vote == 'N':
             if ant.position[0]-1 < 0:
@@ -231,8 +232,9 @@ def actuate_object_movement(environment, obj, ant_dict, obj_marker):
                 if (environment[ant.position[0],ant.position[1]-1]-obj_marker) not in obj.carried_by:
                     path_clear = False
 
+    # then move in the direction of the consensus if you can.
     if path_clear:
-        for id_num in obj.carried_by: 
+        for id_num in obj.carried_by:
             ant = ant_dict[id_num]
             if ant.vote == 'N':
                 if environment[ant.position[0], ant.position[1]] != -100:
@@ -349,11 +351,11 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                     ant_dict[id_num].confidence = 0
 
         # Choose an action and broadcast it
-        # what's the difference between this and the loop above, other than it being run over every ant this time?
-        # G: Above they updated confidences. Now they can choose how to actually act/delegate votes based on confidences that are up to date (otherwise we are doing it on old info)
         # G: What did sorting do for us?
+        # J: it was supposed to let more confident ants move first, and empirically worked for me, but not necessary at all.
         for id_num in range(1, num_ants+1):
             # Look at neighbors in view to decide who to cast a vote towards
+            # J: should this be a < or <= ?
             if ant_dict[id_num].confidence <= 3:
                 max_confidence = ant_dict[id_num].confidence
                 max_confidence_id = id_num
@@ -366,7 +368,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             ant_dict[id_num].vote = act
 
                 #if you're casting your own vote
-                #voting in a random direction since you ain't actually educated
+                #voting in a random direction since you ain't actually educated (since in the 'if confidence < 3')
                 if max_confidence_id == id_num:
                     ant_dict[id_num].vote = ant_dict[id_num].action_set[randint(0,4)]
 
@@ -406,13 +408,10 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             ant_dict[id_num].vote = obj_dir
 
         #Next move if you aren't blocked or take note of who got blocked
-        #queue tracks the blocked ants?
-        #G: Yup, and we keep popping stuff off the queue until it is empty or unchanging
         for id_num in range(1, num_ants+1):
             #print 'Ant number ' + str(id_num) + ' voted to go: ' + str(ant_dict[id_num].vote)
             env, queue = actuate_movement(env, ant_dict[id_num], trans_obj, queue, id_num)
 
-        #print 'Waiting to move: ' + str(queue) #(Removed by Jessie)
         #Now blocked people move until all that are left are ants that can't move
         base_q_len = len(queue)
         update_q_len = 0
@@ -455,7 +454,7 @@ if __name__ == "__main__":
     m = 20
     num_ants = 20
     radius = 5
-    obj_size = 1
+    obj_size = 2
     obj_mark_num = 5000
     volunteer_prob = .01
 
