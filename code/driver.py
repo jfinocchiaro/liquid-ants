@@ -134,8 +134,29 @@ def tug_o_war(votes, obj, m):
 
     potential_winners = [idx for idx in range(4) if votes[idx] == max(votes)]
     winner = choice(potential_winners)
+    print potential_winners
+    
 
-    if winner == 0:
+    # move in the (possibly diagonal) direction of the consensus on the object
+    if potential_winners == [0]:
+        return 'N'
+    elif potential_winners == [1]:
+        return 'S'
+    elif potential_winners == [2]:
+        return 'E'
+    elif potential_winners == [3]:
+        return 'W'
+    elif potential_winners == [0,2]:
+        return 'NE'
+    elif potential_winners == [0,3]:
+        return 'NW'
+    elif potential_winners == [1,2]:
+        return 'SE'
+    elif potential_winners == [1,3]:
+        return 'SW'
+
+    # if you end up with a tie contradiction, like NS, pick one at random for now
+    elif winner == 0:
         return 'N'
     elif winner == 1:
         return 'S'
@@ -143,6 +164,30 @@ def tug_o_war(votes, obj, m):
         return 'E'
     else:
         return 'W'
+
+# J: separated as function so it was easier to call multiple times
+def move_object(environment, ant, direction):
+    if direction == 'N':
+        if environment[ant.position[0], ant.position[1]] != -100:
+            environment[ant.position[0],ant.position[1]] = 0
+        ant.position[0] -= 1
+
+    elif direction == 'S':
+        if environment[ant.position[0], ant.position[1]] != -100:
+            environment[ant.position[0],ant.position[1]] = 0
+        ant.position[0] += 1
+
+    elif direction == 'E':
+        if environment[ant.position[0], ant.position[1]] != -100:
+            environment[ant.position[0],ant.position[1]] = 0
+        ant.position[1] += 1
+
+    elif direction == 'W':
+        if environment[ant.position[0], ant.position[1]] != -100:
+            environment[ant.position[0],ant.position[1]] = 0
+        ant.position[1] -= 1
+    return environment, ant
+
 
 def actuate_movement(environment, ant, obj, queue, id_num):
     if ant.vote == 'N':
@@ -233,28 +278,30 @@ def actuate_object_movement(environment, obj, ant_dict, obj_marker):
                     path_clear = False
 
     # then move in the direction of the consensus if you can.
+    # J: set up to be prepared for diagonal movement
     if path_clear:
         for id_num in obj.carried_by:
             ant = ant_dict[id_num]
             if ant.vote == 'N':
-                if environment[ant.position[0], ant.position[1]] != -100:
-                    environment[ant.position[0],ant.position[1]] = 0
-                ant.position[0] -= 1
-
+                env, ant_dict[id_num] = move_object(environment, ant, 'N')
             elif ant.vote == 'S':
-                if environment[ant.position[0], ant.position[1]] != -100:
-                    environment[ant.position[0],ant.position[1]] = 0
-                ant.position[0] += 1
-
+                env, ant_dict[id_num] = move_object(environment, ant, 'S')
             elif ant.vote == 'E':
-                if environment[ant.position[0], ant.position[1]] != -100:
-                    environment[ant.position[0],ant.position[1]] = 0
-                ant.position[1] += 1
-
+                env, ant_dict[id_num] = move_object(environment, ant, 'E')
             elif ant.vote == 'W':
-                if environment[ant.position[0], ant.position[1]] != -100:
-                    environment[ant.position[0],ant.position[1]] = 0
-                ant.position[1] -= 1
+                env, ant_dict[id_num] = move_object(environment, ant, 'W')
+            elif ant.vote == 'NE':
+                env, ant_dict[id_num] = move_object(environment, ant, 'N')
+                env, ant_dict[id_num] = move_object(environment, ant, 'E')
+            elif ant.vote == 'NW':
+                env, ant_dict[id_num] = move_object(environment, ant, 'N')
+                env, ant_dict[id_num] = move_object(environment, ant, 'W')
+            elif ant.vote == 'SE':
+                env, ant_dict[id_num] = move_object(environment, ant, 'S')
+                env, ant_dict[id_num] = move_object(environment, ant, 'E')
+            elif ant.vote == 'SW':
+                env, ant_dict[id_num] = move_object(environment, ant, 'S')
+                env, ant_dict[id_num] = move_object(environment, ant, 'W')
 
         for id_num in obj.carried_by:
             ant = ant_dict[id_num]
@@ -274,6 +321,30 @@ def actuate_object_movement(environment, obj, ant_dict, obj_marker):
             obj.br_position[1] += 1
 
         elif ant.vote == 'W':
+            obj.tl_position[1] -= 1
+            obj.br_position[1] -= 1
+
+        elif ant.vote == 'NE':
+            obj.tl_position[0] -= 1
+            obj.br_position[0] -= 1
+            obj.tl_position[1] += 1
+            obj.br_position[1] += 1
+
+        elif ant.vote == 'NW':
+            obj.tl_position[0] += 1
+            obj.br_position[0] += 1
+            obj.tl_position[1] -= 1
+            obj.br_position[1] -= 1
+
+        elif ant.vote == 'SE':
+            obj.tl_position[0] += 1
+            obj.br_position[0] += 1
+            obj.tl_position[1] += 1
+            obj.br_position[1] += 1
+
+        elif ant.vote == 'SW':
+            obj.tl_position[0] += 1
+            obj.br_position[0] += 1
             obj.tl_position[1] -= 1
             obj.br_position[1] -= 1
 
