@@ -23,7 +23,7 @@ class Ant():
     #     self.vote = 'N'
     #     self.carrying = False
 
-    def __init__(self, id_num, action_set, radius, confidence, position, vote, carrying, see_object, previous_move = 'N'):
+    def __init__(self, id_num, action_set, radius, confidence, position, vote, carrying, see_object):
         self.id_num = id_num
         self.action_set = action_set
         self.radius = radius
@@ -32,7 +32,7 @@ class Ant():
         self.vote = vote
         self.carrying = carrying
         self.see_object = see_object
-        self.previous_move = previous_move
+        self.time_since_last_mvt = 0
 
 
 #tl_position is the location of the top-left corner of the transported object
