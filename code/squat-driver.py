@@ -18,6 +18,13 @@ np.set_printoptions(suppress=True)
 #NOTE: Made updating confidences second thing and merged it with broadcasting confidence
 #NOTE: It's a square lattice now for simplicity of the 'physics'
 
+def check_neighbors_see_hb(environment, position, radius):
+    for i in range(max(position[0]-radius,0),min(position[0]+radius,m-1)):
+        for j in range(max(position[1]-radius,0),min(position[1]+radius,m-1)):
+            if environment[i,j] > 0:
+                return see_hb(environment, [i,j], radius)
+    return False
+
 def vis_env_mapping(environment, mark_number):
     mapped_env = np.zeros((environment.shape))
     for i in range(environment.shape[0]):
@@ -30,17 +37,15 @@ def vis_env_mapping(environment, mark_number):
                 mapped_env[i,j] = 3
     return mapped_env
 
-def ascii_vis(environment, mark_number, ant_dict):
+def ascii_vis(environment, mark_number):
     mapped_env = vis_env_mapping(environment, mark_number)
-    obj_count = 0
-    print('  ' + '_'*environment.shape[1])
+    print('_'*environment.shape[1])
     to_print = ''
     for i in range(environment.shape[0]):
         to_print += '| '
         for j in range(environment.shape[1]):
             if mapped_env[i,j] == 1:
                 to_print += 'O'
-                obj_count += 1
             elif mapped_env[i,j] == 2:
                 to_print += 'A'
             elif mapped_env[i,j] == 3:
@@ -50,13 +55,7 @@ def ascii_vis(environment, mark_number, ant_dict):
         to_print += ' |'
         print(to_print)
         to_print = ''
-    print('  ' + '_'*environment.shape[1])
-
-    if obj_count > 4:
-        print 'Error with object'
-        for ant in ant_dict.values():
-            print 'ID: ' + str(ant.id_num) + ' voted: ' + str(ant.vote)
-        quit()
+    print('_'*environment.shape[1])
 
 def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
     env = np.zeros((m,m))
@@ -84,6 +83,7 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
             for j in range(corner[1], corner[1]+ obj_size):
                 ant_dict[env[(i,j)]].carrying = True
                 ant_dict[env[(i,j)]].see_object = True
+                # ant_dict[env[(i,j)]].radius = 1 #if the ant is carrying the object, we want it to have vision radius 1.
                 trans_obj.carried_by += [env[i,j]]
                 env[(i,j)] += obj_mark_num
 
@@ -136,12 +136,12 @@ def tug_o_war(votes, obj, m):
     if obj.br_position[1] == m-1:
         votes[2] = -1
 
+    # #note, this implicitly has tiebreaker N > S > E > W
+    # winner = votes.index(max(votes))
+
     potential_winners = [idx for idx in range(4) if votes[idx] == max(votes)]
     winner = choice(potential_winners)
-    #print potential_winners
-    choices = ['N', 'S', 'E', 'W']
 
-    # if you end up with a tie contradiction, like NS, pick one at random for now
     if winner == 0:
         return 'N'
     elif winner == 1:
@@ -151,96 +151,61 @@ def tug_o_war(votes, obj, m):
     else:
         return 'W'
 
-# J: separated as function so it was easier to call multiple times
-def move_object(environment, ant, direction):
-    if direction == 'N':
-        if environment[ant.position[0], ant.position[1]] != -100:
-            environment[ant.position[0],ant.position[1]] = 0
-        ant.position[0] -= 1
-        ant.time_since_last_mvt = 0
+def actuate_movement(environment, ant, obj, queue, id_num):
+    if not ant.squat:
+        if ant.vote == 'N':
+            if ant.position[0]-1 < 0:
+                pass
+            elif id_num in obj.carried_by:
+                pass
+            elif environment[ant.position[0]-1,ant.position[1]] > 0:
+                queue += [id_num]
+            else:
+                if environment[ant.position[0]-1, ant.position[1]] != -100:
+                    environment[ant.position[0]-1, ant.position[1]] = environment[ant.position[0],ant.position[1]]
+                environment[ant.position[0],ant.position[1]] = 0
+                ant.position[0] -= 1
 
-    elif direction == 'S':
-        if environment[ant.position[0], ant.position[1]] != -100:
-            environment[ant.position[0],ant.position[1]] = 0
-        ant.position[0] += 1
-        ant.time_since_last_mvt = 0
+        elif ant.vote == 'S':
+            if ant.position[0]+1 >= m:
+                pass
+            elif id_num in obj.carried_by:
+                pass
+            elif environment[ant.position[0]+1,ant.position[1]] > 0:
+                queue += [id_num]
+            else:
+                if environment[ant.position[0]+1, ant.position[1]] != -100:
+                    environment[ant.position[0]+1, ant.position[1]] = environment[ant.position[0],ant.position[1]]
+                environment[ant.position[0],ant.position[1]] = 0
+                ant.position[0] += 1
 
-    elif direction == 'E':
-        if environment[ant.position[0], ant.position[1]] != -100:
-            environment[ant.position[0],ant.position[1]] = 0
-        ant.position[1] += 1
-        ant.time_since_last_mvt = 0
+        elif ant.vote == 'E':
+            if ant.position[1]+1 >= m:
+                pass
+            elif id_num in obj.carried_by:
+                pass
+            elif environment[ant.position[0],ant.position[1]+1] > 0:
+                queue += [id_num]
+            else:
+                if environment[ant.position[0], ant.position[1]+1] != -100:
+                    environment[ant.position[0], ant.position[1]+1] = environment[ant.position[0],ant.position[1]]
+                environment[ant.position[0],ant.position[1]] = 0
+                ant.position[1] += 1
 
-    elif direction == 'W':
-        if environment[ant.position[0], ant.position[1]] != -100:
-            environment[ant.position[0],ant.position[1]] = 0
-        ant.position[1] -= 1
-        ant.time_since_last_mvt = 0
-    return environment, ant
+        elif ant.vote == 'W':
+            if ant.position[1]-1 < 0:
+                pass
+            elif id_num in obj.carried_by:
+                pass
+            elif environment[ant.position[0],ant.position[1]-1] > 0:
+                queue += [id_num]
+            else:
+                if environment[ant.position[0], ant.position[1]-1] != -100:
+                    environment[ant.position[0], ant.position[1]-1] = environment[ant.position[0],ant.position[1]]
+                environment[ant.position[0],ant.position[1]] = 0
+                ant.position[1] -= 1
 
-
-def actuate_movement(environment, ant, obj, queue, id_num, ant_dict, huddle=False):
-    if ant.time_since_last_mvt > 5:
-        choices = ['N', 'S', 'E', 'W']
-        ant.vote = choice(choices)
-
-    if ant.vote == 'N':
-        if ant.position[0]-1 < 0:
-            ant.time_since_last_mvt += 1
-        elif id_num in obj.carried_by:
-            pass
-        elif environment[ant.position[0]-1,ant.position[1]] > 0:
-            queue += [id_num]
-        elif ant.confidence < 3:
-            if environment[ant.position[0]-1, ant.position[1]] != -100:
-                environment[ant.position[0]-1, ant.position[1]] = environment[ant.position[0],ant.position[1]]
-            environment[ant.position[0],ant.position[1]] = 0
-            ant.position[0] -= 1
-            ant.time_since_last_mvt = 0
-
-    elif ant.vote == 'S':
-        if ant.position[0]+1 >= m:
-            ant.time_since_last_mvt += 1
-        elif id_num in obj.carried_by:
-            pass
-        elif environment[ant.position[0]+1,ant.position[1]] > 0:
-            queue += [id_num]
-        elif ant.confidence < 3:
-            if environment[ant.position[0]+1, ant.position[1]] != -100:
-                environment[ant.position[0]+1, ant.position[1]] = environment[ant.position[0],ant.position[1]]
-            environment[ant.position[0],ant.position[1]] = 0
-            ant.position[0] += 1
-            ant.time_since_last_mvt = 0
-
-    elif ant.vote == 'E':
-        if ant.position[1]+1 >= m:
-            ant.time_since_last_mvt += 1
-        elif id_num in obj.carried_by:
-            pass
-        elif environment[ant.position[0],ant.position[1]+1] > 0:
-            queue += [id_num]
-        elif ant.confidence < 3:
-            if environment[ant.position[0], ant.position[1]+1] != -100:
-                environment[ant.position[0], ant.position[1]+1] = environment[ant.position[0],ant.position[1]]
-            environment[ant.position[0],ant.position[1]] = 0
-            ant.position[1] += 1
-            ant.time_since_last_mvt = 0
-
-    elif ant.vote == 'W':
-        if ant.position[1]-1 < 0:
-            ant.time_since_last_mvt += 1
-        elif id_num in obj.carried_by:
-            pass
-        elif environment[ant.position[0],ant.position[1]-1] > 0:
-            queue += [id_num]
-        elif ant.confidence < 3:
-            if environment[ant.position[0], ant.position[1]-1] != -100:
-                environment[ant.position[0], ant.position[1]-1] = environment[ant.position[0],ant.position[1]]
-            environment[ant.position[0],ant.position[1]] = 0
-            ant.position[1] -= 1
-            ant.time_since_last_mvt = 0
-
-    return environment, queue, ant
+    return environment, queue
 
 def actuate_object_movement(environment, obj, ant_dict, obj_marker):
     path_clear = True
@@ -250,51 +215,54 @@ def actuate_object_movement(environment, obj, ant_dict, obj_marker):
         if ant.vote == 'N':
             if ant.position[0]-1 < 0:
                 path_clear = False
-                ant.time_since_last_mvt += 1
             elif environment[ant.position[0]-1,ant.position[1]] > 0:
                 if (environment[ant.position[0]-1,ant.position[1]]-obj_marker) not in obj.carried_by:
                     path_clear = False
-                    ant.time_since_last_mvt += 1
 
         elif ant.vote == 'S':
             if ant.position[0]+1 >= m:
                 path_clear = False
-                ant.time_since_last_mvt += 1
             elif environment[ant.position[0]+1,ant.position[1]] > 0:
                 if (environment[ant.position[0]+1,ant.position[1]]-obj_marker) not in obj.carried_by:
                     path_clear = False
-                    ant.time_since_last_mvt += 1
 
         elif ant.vote == 'E':
             if ant.position[1]+1 >= m:
                 path_clear = False
-                ant.time_since_last_mvt += 1
             elif environment[ant.position[0],ant.position[1]+1] > 0:
                 if (environment[ant.position[0],ant.position[1]+1]-obj_marker) not in obj.carried_by:
                     path_clear = False
-                    ant.time_since_last_mvt += 1
 
         elif ant.vote == 'W':
             if ant.position[1]-1 < 0:
                 path_clear = False
-                ant.time_since_last_mvt += 1
             elif environment[ant.position[0],ant.position[1]-1] > 0:
                 if (environment[ant.position[0],ant.position[1]-1]-obj_marker) not in obj.carried_by:
                     path_clear = False
-                    ant.time_since_last_mvt += 1
 
     # then move in the direction of the consensus if you can.
     if path_clear:
         for id_num in obj.carried_by:
             ant = ant_dict[id_num]
             if ant.vote == 'N':
-                environment, ant_dict[id_num] = move_object(environment, ant, 'N')
+                if environment[ant.position[0], ant.position[1]] != -100:
+                    environment[ant.position[0],ant.position[1]] = 0
+                ant.position[0] -= 1
+
             elif ant.vote == 'S':
-                environment, ant_dict[id_num] = move_object(environment, ant, 'S')
+                if environment[ant.position[0], ant.position[1]] != -100:
+                    environment[ant.position[0],ant.position[1]] = 0
+                ant.position[0] += 1
+
             elif ant.vote == 'E':
-                environment, ant_dict[id_num] = move_object(environment, ant, 'E')
+                if environment[ant.position[0], ant.position[1]] != -100:
+                    environment[ant.position[0],ant.position[1]] = 0
+                ant.position[1] += 1
+
             elif ant.vote == 'W':
-                environment, ant_dict[id_num] = move_object(environment, ant, 'W')
+                if environment[ant.position[0], ant.position[1]] != -100:
+                    environment[ant.position[0],ant.position[1]] = 0
+                ant.position[1] -= 1
 
         for id_num in obj.carried_by:
             ant = ant_dict[id_num]
@@ -370,8 +338,10 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         for id_num in range(1, num_ants+1):
             if see_hb(env,ant_dict[id_num].position,ant_dict[id_num].radius) == True:
                 ant_dict[id_num].confidence = 4
-            #J: why is this an if else?  so if they can't see the item, they get added to the queue, which has all of the vote delegators?
-            #G: We just had to make sure the ones who saw hb were updated so that in the pass through the others they could see if they saw an informed individual or not
+                if not check_neighbors_see_hb(env, ant_dict[id_num].position, ant_dict[id_num].radius):
+                    ant_dict[id_num].squat = True
+                else:
+                    ant_dict[id_num].squat = False
             else:
                 queue += [id_num]
         for iters in queue:
@@ -391,8 +361,6 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                     ant_dict[id_num].confidence = 0
 
         # Choose an action and broadcast it
-        # G: What did sorting do for us?
-        # J: it was supposed to let more confident ants move first, and empirically worked for me, but not necessary at all.
         for id_num in range(1, num_ants+1):
             # Look at neighbors in view to decide who to cast a vote towards
             # J: should this be a < or <= ?
@@ -408,7 +376,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
                             ant_dict[id_num].vote = act
 
                 #if you're casting your own vote
-                #voting in a random direction since you ain't actually educated (since in the 'if confidence < 3'... but its <= ...)
+                #voting in a random direction since you ain't actually educated (since in the 'if confidence < 3')
                 if max_confidence_id == id_num:
                     ant_dict[id_num].vote = ant_dict[id_num].action_set[randint(0,4)]
 
@@ -430,14 +398,14 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
         #Decide which way the object will move
         for id_num in trans_obj.carried_by:
-            if ant_dict[id_num].vote == 'N':
-                obj_direction_vote[0] += 1
-            elif ant_dict[id_num].vote == 'S':
-                obj_direction_vote[1] += 1
-            elif ant_dict[id_num].vote == 'E':
-                obj_direction_vote[2] += 1
-            elif ant_dict[id_num].vote == 'W':
-                obj_direction_vote[3] += 1
+                if ant_dict[id_num].vote == 'N':
+                    obj_direction_vote[0] += 1
+                elif ant_dict[id_num].vote == 'S':
+                    obj_direction_vote[1] += 1
+                elif ant_dict[id_num].vote == 'E':
+                    obj_direction_vote[2] += 1
+                elif ant_dict[id_num].vote == 'W':
+                    obj_direction_vote[3] += 1
         obj_dir = tug_o_war(obj_direction_vote, trans_obj, m)
         for id_num in trans_obj.carried_by:
             # print('Carrier ant voted: ' + str(ant_dict[id_num].vote))
@@ -450,7 +418,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         #Next move if you aren't blocked or take note of who got blocked
         for id_num in range(1, num_ants+1):
             #print 'Ant number ' + str(id_num) + ' voted to go: ' + str(ant_dict[id_num].vote)
-            env, queue, ant_dict[id_num] = actuate_movement(env, ant_dict[id_num], trans_obj, queue, id_num, ant_dict, huddle=True)
+            env, queue = actuate_movement(env, ant_dict[id_num], trans_obj, queue, id_num)
 
         #Now blocked people move until all that are left are ants that can't move
         base_q_len = len(queue)
@@ -460,7 +428,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             base_q_len = len(queue)
 
             for id_num in queue:
-                env, temp_queue, ant_dict[id_num] = actuate_movement(env, ant_dict[id_num], trans_obj, temp_queue, id_num, ant_dict, huddle=True)
+                env, temp_queue = actuate_movement(env, ant_dict[id_num], trans_obj, temp_queue, id_num)
 
             update_q_len = len(temp_queue)
             queue = temp_queue
@@ -469,11 +437,8 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         env = actuate_object_movement(env, trans_obj, ant_dict, obj_mark_num)
 
         #Fast but shitty vis
-        ascii_vis(env,obj_mark_num, ant_dict)
+        ascii_vis(env,obj_mark_num)
         sleep(.1)
-        #for ant in ant_dict.values():
-        #    print 'Ant ' + str(ant.id_num) + ' has confidence: ' + str(ant.confidence)
-
 
         #Fancy but slow visual
         # cMap = []

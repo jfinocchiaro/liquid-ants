@@ -33,6 +33,7 @@ class Ant():
         self.carrying = carrying
         self.see_object = see_object
         self.time_since_last_mvt = 0
+        self.squat = False
 
 
 #tl_position is the location of the top-left corner of the transported object
