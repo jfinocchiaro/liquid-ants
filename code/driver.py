@@ -93,7 +93,7 @@ def initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num):
 
     return env, ant_dict, trans_obj
 
-def see_hb(environment, position, radius):
+def see_hb(environment, position, radius, m):
     for i in range(max(position[0]-radius,0),min(position[0]+radius,m-1)):
         for j in range(max(position[1]-radius,0),min(position[1]+radius,m-1)):
             if environment[i,j] == -100:
@@ -101,7 +101,7 @@ def see_hb(environment, position, radius):
 
 #if you see home base move towards it.
 #preference toward vertical movement, but once we're in the correct row, move horizontally toward home base
-def move_towards_hb(environment, position, radius):
+def move_towards_hb(environment, position, radius, m):
     for i in range(max(position[0]-radius,0),min(position[0]+radius,m-1)):
         for j in range(max(position[1]-radius,0),min(position[1]+radius,m-1)):
             if environment[i,j] == -100:
@@ -144,7 +144,7 @@ def tug_o_war(votes, obj, m):
     else:
         return 'W'
 
-def actuate_movement(environment, ant, obj, queue, id_num):
+def actuate_movement(environment, ant, obj, queue, id_num, m):
     if ant.vote == 'N':
         if ant.position[0]-1 < 0:
             pass
@@ -199,7 +199,7 @@ def actuate_movement(environment, ant, obj, queue, id_num):
 
     return environment, queue
 
-def actuate_object_movement(environment, obj, ant_dict, obj_marker):
+def actuate_object_movement(environment, obj, ant_dict, obj_marker, m):
     path_clear = True
     # first, check to make sure the object can move where desired.
     for id_num in obj.carried_by:
@@ -280,12 +280,12 @@ def actuate_object_movement(environment, obj, ant_dict, obj_marker):
     return environment
 
 
-def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob):
+def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob, TIME_LIMIT = 2000):
     env, ant_dict, trans_obj = initializeEnv(m, num_ants, random_pos, radius, obj_size, obj_mark_num)
 
     found_hb = False
     time = 0
-    TIME_LIMIT = 10000
+
 
 
     # Enter action sequence until home base is found.
@@ -304,12 +304,13 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             if ant_dict[id_num].carrying:
                 if env[ant_dict[id_num].position[0],ant_dict[id_num].position[1]] == -100:
                     found_hb = True
-                    print("Simulation Complete after " + str(time) + " time steps.")
+                    #print("Simulation Complete after " + str(time) + " time steps.")
                     # print (env)
+                    return time
                     quit()
 
         time += 1
-        print '~~~~~~~~~~~~~~~~~~~~~~~Time ' + str(time) + '~~~~~~~~~~~~~~~~~~~~~~~~~~'
+        #print '~~~~~~~~~~~~~~~~~~~~~~~Time ' + str(time) + '~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
         #Update action set by seeing who is in my radius
         for id_num in range(1, num_ants+1):
@@ -328,7 +329,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         queue = []
 
         for id_num in range(1, num_ants+1):
-            if see_hb(env,ant_dict[id_num].position,ant_dict[id_num].radius) == True:
+            if see_hb(env,ant_dict[id_num].position,ant_dict[id_num].radius, m) == True:
                 ant_dict[id_num].confidence = 4
             #why is this an if else?  so if they can't see the item, they get added to the queue, which has all of the vote delegators?
             #G: We just had to make sure the ones who saw hb were updated so that in the pass through the others they could see if they saw an informed individual or not
@@ -374,7 +375,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
 
             #if you're educated, move towards home base.
             else:
-                ant_dict[id_num].vote = move_towards_hb(env,ant_dict[id_num].position,radius)
+                ant_dict[id_num].vote = move_towards_hb(env,ant_dict[id_num].position,radius, m)
 
             # if ant_dict[id_num].carrying:
             #     print('Carrier ant wants to vote: ' + str(ant_dict[id_num].vote))
@@ -410,7 +411,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
         #Next move if you aren't blocked or take note of who got blocked
         for id_num in range(1, num_ants+1):
             #print 'Ant number ' + str(id_num) + ' voted to go: ' + str(ant_dict[id_num].vote)
-            env, queue = actuate_movement(env, ant_dict[id_num], trans_obj, queue, id_num)
+            env, queue = actuate_movement(env, ant_dict[id_num], trans_obj, queue, id_num, m)
 
         #Now blocked people move until all that are left are ants that can't move
         base_q_len = len(queue)
@@ -420,17 +421,17 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
             base_q_len = len(queue)
 
             for id_num in queue:
-                env, temp_queue = actuate_movement(env, ant_dict[id_num], trans_obj, temp_queue, id_num)
+                env, temp_queue = actuate_movement(env, ant_dict[id_num], trans_obj, temp_queue, id_num, m)
 
             update_q_len = len(temp_queue)
             queue = temp_queue
             temp_queue = []
 
-        env = actuate_object_movement(env, trans_obj, ant_dict, obj_mark_num)
+        env = actuate_object_movement(env, trans_obj, ant_dict, obj_mark_num, m)
 
         #Fast but shitty vis
-        ascii_vis(env,obj_mark_num)
-        sleep(.1)
+        #ascii_vis(env,obj_mark_num)
+        #sleep(.1)
 
         #Fancy but slow visual
         # cMap = []
@@ -447,7 +448,7 @@ def main(m, num_ants, random_pos, radius, obj_size, obj_mark_num, volunteer_prob
     # plt.show()
 
     #Repeat
-
+    return time
 
 if __name__ == "__main__":
     random_pos = 0
