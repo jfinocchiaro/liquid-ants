@@ -8,7 +8,7 @@ def main():
     default_num_agents = 20
     default_vol_prob = 0.01
     TIME_LIMIT = 1500
-    num_exp = 10
+    num_exp = 25
 
     ms = np.linspace(10, m_max ,m_max+1-10, endpoint=True, dtype=int)
     radii = np.linspace(1,m_max,m_max+1, endpoint=True, dtype=int)
