@@ -2,13 +2,13 @@ import driver as dr
 import numpy as np
 
 def main():
-    m_max = 25
+    m_max = 50
     obj_size = 1
     default_radius = 5
     default_num_agents = 20
     default_vol_prob = 0.01
-    TIME_LIMIT = 1500
-    num_exp = 25
+    TIME_LIMIT = 3000
+    num_exp = 5
 
     ms = np.linspace(10, m_max ,m_max+1-10, endpoint=True, dtype=int)
     radii = np.linspace(1,m_max,m_max+1, endpoint=True, dtype=int)
